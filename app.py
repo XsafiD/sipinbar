@@ -52,6 +52,9 @@ def create_app(config_class: type = Config) -> Flask:
     # diimplementasi oleh Dev 2-6).
     _register_blueprints(app)
 
+    # ── Register CLI Commands ─────────────────────────────────
+    _register_cli_commands(app)
+
     # ── Health Check Route ────────────────────────────────────
     @app.route("/health")
     def health_check():
@@ -163,6 +166,41 @@ def _register_blueprints(app: Flask) -> None:
         except ImportError:
             # Modul belum ada — skip (M1 wajar belum ada semua controller)
             app.logger.debug("Blueprint '%s' belum tersedia, skip", module_name)
+
+
+def _register_cli_commands(app: Flask) -> None:
+    """
+    Register Flask CLI commands (dipanggil via ``flask <command>``).
+
+    Command yang tersedia:
+      - ``flask send-reminders`` — jalankan scheduler pengingat H-1
+        jatuh tempo peminjaman (BR-07). Didesain dijalankan via cron
+        job, mis. setiap jam 8 pagi.
+    """
+    import click
+
+    @app.cli.command("send-reminders")
+    def send_reminders_command():
+        """
+        Kirim pengingat H-1 untuk peminjaman yang jatuh tempo besok.
+
+        Idempoten: aman dipanggil berkali-kali dalam sehari (anti-spam
+        di level service). Output: jumlah pengingat yang terkirim.
+
+        Cron job rekomendasi (MVP):
+            0 8 * * *  cd /path/to/sipinbar && flask send-reminders
+        """
+        from services.notifikasi_service import NotifikasiService
+
+        try:
+            jumlah = NotifikasiService().check_and_send_reminders()
+            click.echo(
+                f"✓ Pengingat terkirim: {jumlah} peminjaman jatuh tempo besok."
+            )
+        except Exception as err:  # pragma: no cover — defensive
+            app.logger.exception("send-reminders failed: %s", err)
+            click.echo(f"✗ Error: {err}", err=True)
+            raise
 
 
 # ── CLI entry point (python app.py) ───────────────────────────

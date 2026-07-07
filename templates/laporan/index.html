@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Pusat Laporan — SIPINBAR</title>
+  <!--
+    STUB template (M3 §4.2) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-13 (UI Spec SCR-14) dengan layout
+    base.html + komponen card/table.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 16px 0; }
+    .card { padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .card .label { font-size: 12px; color: #6b7280; text-transform: uppercase; }
+    .card .value { font-size: 24px; font-weight: bold; margin-top: 4px; }
+    .menu { margin: 16px 0; }
+    .menu a { display: inline-block; padding: 8px 14px; margin-right: 8px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; }
+    .menu a.export { background: #16a34a; }
+  </style>
+</head>
+<body>
+  <h1>Pusat Laporan</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <h2>Statistik Dashboard</h2>
+  <div class="grid">
+    <div class="card">
+      <div class="label">Total Barang</div>
+      <div class="value">{{ statistik.total_barang }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Total Unit</div>
+      <div class="value">{{ statistik.total_unit_barang }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Peminjaman Aktif</div>
+      <div class="value">{{ statistik.peminjaman_aktif }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Terlambat</div>
+      <div class="value">{{ statistik.peminjaman_terlambat }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Warga Terdaftar</div>
+      <div class="value">{{ statistik.warga_terdaftar }}</div>
+    </div>
+    <div class="card">
+      <div class="label">Warga Aktif</div>
+      <div class="value">{{ statistik.warga_aktif }}</div>
+    </div>
+  </div>
+
+  <h2>Laporan Detail</h2>
+  <div class="menu">
+    <a href="{{ url_for('laporan.peminjaman') }}">Laporan Peminjaman</a>
+    <a href="{{ url_for('laporan.inventaris') }}">Laporan Inventaris</a>
+    <a class="export" href="{{ url_for('laporan.export', type='peminjaman', format='csv') }}">Export Peminjaman (CSV)</a>
+    <a class="export" href="{{ url_for('laporan.export', type='inventaris', format='csv') }}">Export Inventaris (CSV)</a>
+  </div>
+</body>
+</html>

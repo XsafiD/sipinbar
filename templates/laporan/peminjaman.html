@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Laporan Peminjaman — SIPINBAR</title>
+  <!--
+    STUB template (M3 §4.2) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-14 (UI Spec SCR-15) dengan layout
+    base.html + komponen table/card.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    form.filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
+    input[type=date], input[type=text], select { padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f3f4f6; }
+    .summary { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
+    .summary .card { padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; }
+    .summary .label { font-size: 12px; color: #6b7280; text-transform: uppercase; }
+    .summary .value { font-size: 20px; font-weight: bold; }
+    a.button { display: inline-block; padding: 4px 10px; background: #16a34a; color: white; text-decoration: none; border-radius: 4px; }
+    a.back { background: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>Laporan Peminjaman</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form class="filter" method="get">
+    <label>Mulai: <input type="date" name="mulai" value="{{ mulai_filter }}"></label>
+    <label>Selesai: <input type="date" name="selesai" value="{{ selesai_filter }}"></label>
+    <input type="text" name="status" placeholder="status (diajukan/dipinjam/dll)" value="{{ status_filter }}">
+    <button type="submit">Filter</button>
+    <a class="button" href="{{ url_for('laporan.export', type='peminjaman', format='csv', mulai=mulai_filter, selesai=selesai_filter, status=status_filter) }}">Export CSV</a>
+    <a class="button back" href="{{ url_for('laporan.index') }}">Kembali</a>
+  </form>
+
+  {% set summary = data.summary or {} %}
+  {% if summary %}
+    <div class="summary">
+      <div class="card">
+        <div class="label">Total Peminjaman</div>
+        <div class="value">{{ summary.total_peminjaman }}</div>
+      </div>
+      <div class="card">
+        <div class="label">Total Denda (Rp)</div>
+        <div class="value">{{ "{:,}".format(summary.total_denda_rupiah or 0) }}</div>
+      </div>
+    </div>
+  {% endif %}
+
+  {% if data.rows %}
+    <table>
+      <thead>
+        <tr>
+          <th>Kode</th>
+          <th>Warga</th>
+          <th>Tanggal Pinjam</th>
+          <th>Rencana Kembali</th>
+          <th>Status</th>
+          <th>Denda (Rp)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in data.rows %}
+        <tr>
+          <td>{{ row.kode_peminjaman }}</td>
+          <td>{{ row.warga_id }}</td>
+          <td>{{ row.tanggal_pinjam }}</td>
+          <td>{{ row.tanggal_kembali_rencana }}</td>
+          <td>{{ row.status_display }}</td>
+          <td>{{ "{:,}".format(row.total_denda_rupiah or 0) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p><em>Tidak ada data peminjaman untuk filter ini.</em></p>
+  {% endif %}
+</body>
+</html>

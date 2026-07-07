@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Notifikasi — SIPINBAR</title>
+  <!--
+    STUB template (M3 §4.2) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-16 (UI Spec SCR-17) dengan layout
+    base.html + komponen badge/card.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    .toolbar { display: flex; gap: 8px; align-items: center; margin: 16px 0; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .badge.pengingat { background: #fef3c7; color: #b45309; }
+    .badge.info { background: #dbeafe; color: #1d4ed8; }
+    .badge.peringatan { background: #fee2e2; color: #b91c1c; }
+    .notif-list { list-style: none; padding: 0; }
+    .notif-item { padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 8px; }
+    .notif-item.unread { background: #f9fafb; border-left: 4px solid #2563eb; }
+    .notif-item.read { opacity: 0.7; }
+    .notif-header { display: flex; justify-content: space-between; align-items: center; }
+    .notif-timestamp { font-size: 12px; color: #6b7280; }
+    a.button, button { display: inline-block; padding: 4px 10px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; font-size: 13px; }
+    a.button.danger { background: #b91c1c; }
+    a.button.ghost { background: #6b7280; }
+    a.filter-link { padding: 4px 10px; background: #e5e7eb; color: #111827; text-decoration: none; border-radius: 4px; font-size: 13px; }
+    a.filter-link.active { background: #2563eb; color: white; }
+  </style>
+</head>
+<body>
+  <h1>Notifikasi</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="toolbar">
+    <strong>Belum dibaca: {{ unread_count }}</strong>
+    <a class="filter-link {% if not only_unread %}active{% endif %}" href="{{ url_for('laporan.notifikasi') }}">Semua</a>
+    <a class="filter-link {% if only_unread %}active{% endif %}" href="{{ url_for('laporan.notifikasi', unread='true') }}">Belum Dibaca</a>
+    {% if unread_count > 0 %}
+      <form method="post" action="{{ url_for('laporan.tandai_semua_baca') }}" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ confirm_form.csrf_token }}">
+        <button type="submit">Tandai Semua Dibaca</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if notif_list %}
+    <ul class="notif-list">
+      {% for n in notif_list %}
+        <li class="notif-item {% if n.is_dibaca %}read{% else %}unread{% endif %}">
+          <div class="notif-header">
+            <div>
+              <span class="badge {{ n.tipe }}">{{ n.tipe | title }}</span>
+              <strong>{{ n.judul }}</strong>
+            </div>
+            <span class="notif-timestamp">{{ n.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+          </div>
+          <p>{{ n.pesan }}</p>
+          {% if not n.is_dibaca %}
+            <form method="post" action="{{ url_for('laporan.tandai_baca', notifikasi_id=n.id) }}" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ confirm_form.csrf_token }}">
+              <button type="submit">Tandai Dibaca</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p><em>Tidak ada notifikasi.</em></p>
+  {% endif %}
+</body>
+</html>
