@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Daftar Peminjaman — SIPINBAR</title>
+  <!--
+    STUB template (M3 §4.1) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-07 (UI Spec SCR-08) dengan layout
+    base.html + komponen table/badge/pagination.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    form.filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f3f4f6; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .badge.diajukan { background: #fef3c7; color: #b45309; }
+    .badge.disetujui { background: #dcfce7; color: #15803d; }
+    .badge.ditolak { background: #fee2e2; color: #b91c1c; }
+    .badge.dipinjam { background: #dbeafe; color: #1d4ed8; }
+    .badge.terlambat { background: #fee2e2; color: #b91c1c; }
+    .badge.dikembalikan { background: #e5e7eb; color: #6b7280; }
+    a.button { display: inline-block; padding: 4px 10px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; }
+    a.button.tambah { background: #16a34a; }
+    select, input[type=text] { padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Daftar Peminjaman</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form class="filter" method="get">
+    <input type="text" name="q" placeholder="Cari kode peminjaman..." value="{{ q_filter }}">
+    <select name="status">
+      <option value="">Semua status</option>
+      {% for s in status_options %}
+        <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s | replace('_',' ') | title }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit">Filter</button>
+    {% if session.get('role') == 'warga' %}
+      <a class="button tambah" href="{{ url_for('peminjaman.ajukan') }}">+ Ajukan Peminjaman</a>
+    {% endif %}
+  </form>
+
+  {% if peminjaman_list %}
+    <table>
+      <thead>
+        <tr>
+          <th>Kode</th>
+          <th>{% if session.get('role') == 'admin' %}Warga{% else %}Barang{% endif %}</th>
+          <th>Tanggal Pinjam</th>
+          <th>Tanggal Kembali</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in peminjaman_list %}
+        <tr>
+          <td>{{ p.kode_peminjaman }}</td>
+          <td>
+            {% if session.get('role') == 'admin' %}
+              {{ p.warga.nama_lengkap }}
+            {% else %}
+              {{ p.detail_list | map(attribute='barang.nama') | join(', ') }}
+            {% endif %}
+          </td>
+          <td>{{ p.tanggal_pinjam.isoformat() }}</td>
+          <td>{{ p.tanggal_kembali_rencana.isoformat() }}</td>
+          <td><span class="badge {{ p.status }}">{{ p.get_status_display() }}</span></td>
+          <td><a class="button" href="{{ url_for('peminjaman.detail', peminjaman_id=p.id) }}">Detail</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p><em>Belum ada peminjaman dengan filter ini.</em></p>
+  {% endif %}
+</body>
+</html>

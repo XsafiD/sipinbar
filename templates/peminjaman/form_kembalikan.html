@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Proses Pengembalian — SIPINBAR</title>
+  <!--
+    STUB template (M3 §4.1) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-10 (UI Spec SCR-11) dengan layout
+    base.html + komponen form + info denda real-time.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 640px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    .info-grid { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin-top: 16px; }
+    .info-grid dt { font-weight: bold; color: #374151; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f3f4f6; }
+    select { padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; }
+    .buttons { margin-top: 16px; display: flex; gap: 8px; }
+    button.save { background: #7c3aed; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+    a.cancel { background: #6b7280; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; }
+    .denda-info { margin-top: 16px; padding: 12px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>Proses Pengembalian</h1>
+  <p>Kode: <strong>{{ peminjaman.kode_peminjaman }}</strong></p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <dl class="info-grid">
+    <dt>Peminjam</dt>
+    <dd>{{ peminjaman.warga.nama_lengkap }}</dd>
+    <dt>Tanggal Pinjam</dt>
+    <dd>{{ peminjaman.tanggal_pinjam.isoformat() }}</dd>
+    <dt>Rencana Kembali</dt>
+    <dd>{{ peminjaman.tanggal_kembali_rencana.isoformat() }}</dd>
+    <dt>Status</dt>
+    <dd>{{ peminjaman.get_status_display() }}</dd>
+  </dl>
+
+  {% if peminjaman.is_terlambat %}
+    <div class="denda-info">
+      <strong>Terlambat {{ peminjaman.get_jumlah_hari_terlambat() }} hari.</strong>
+      Denda akan dihitung otomatis berdasarkan tarif kategori per barang.
+    </div>
+  {% endif %}
+
+  <form method="post">
+    {{ form.csrf_token }}
+    <h2>Kondisi Kembali per Barang</h2>
+    {% if peminjaman.detail_list %}
+      <table>
+        <thead>
+          <tr><th>Barang</th><th>Kategori</th><th>Jumlah</th><th>Kondisi Kembali</th></tr>
+        </thead>
+        <tbody>
+          {% for d in peminjaman.detail_list %}
+          <tr>
+            <td>{{ d.barang.nama }}</td>
+            <td>{{ d.barang.kategori.nama }}</td>
+            <td>{{ d.jumlah }}</td>
+            <td>
+              <select name="kondisi_{{ d.barang_id }}">
+                {% for k in kondisi_options %}
+                  <option value="{{ k }}" {% if k == 'baik' %}selected{% endif %}>{{ k | replace('_',' ') | title }}</option>
+                {% endfor %}
+              </select>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p><em>Tidak ada barang di peminjaman ini.</em></p>
+    {% endif %}
+
+    <div class="buttons">
+      <button class="save" type="submit" onclick="return confirm('Konfirmasi pengembalian? Denda akan dihitung otomatis.')">Konfirmasi Pengembalian</button>
+      <a class="cancel" href="{{ url_for('peminjaman.detail', peminjaman_id=peminjaman.id) }}">Batal</a>
+    </div>
+  </form>
+</body>
+</html>

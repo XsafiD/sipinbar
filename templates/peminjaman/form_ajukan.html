@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Ajukan Peminjaman — SIPINBAR</title>
+  <!--
+    STUB template (M3 §4.1) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-09 (UI Spec SCR-10) dengan layout
+    base.html + komponen form + JS dynamic row + preview ringkasan.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; max-width: 720px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    .field { margin-bottom: 12px; }
+    label { display: block; font-weight: bold; margin-bottom: 4px; }
+    input[type=date], input[type=text], input[type=number], select, textarea {
+      width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;
+    }
+    .item-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: end; }
+    .item-row select { flex: 2; }
+    .item-row input[type=number] { flex: 1; }
+    .item-row button.remove { padding: 6px 10px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; }
+    .buttons { margin-top: 16px; display: flex; gap: 8px; }
+    button.save { background: #16a34a; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
+    a.cancel { background: #6b7280; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; }
+    a.add-row { display: inline-block; margin-bottom: 12px; padding: 4px 10px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Ajukan Peminjaman</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post">
+    {{ form.csrf_token }}
+    <div class="field">
+      {{ form.tanggal_pinjam.label }}
+      {{ form.tanggal_pinjam() }}
+    </div>
+    <div class="field">
+      {{ form.tanggal_kembali.label }}
+      {{ form.tanggal_kembali() }}
+    </div>
+    <div class="field">
+      {{ form.catatan.label }}
+      {{ form.catatan(rows=3, placeholder="Catatan opsional...") }}
+    </div>
+
+    <h2>Barang Dipinjam</h2>
+    <a class="add-row" href="#" onclick="addRow(); return false;">+ Tambah Baris</a>
+    <div id="items-container">
+      <div class="item-row">
+        <select name="barang_id">
+          <option value="">-- Pilih Barang --</option>
+          {% for b in barang_list %}
+            <option value="{{ b.id }}">{{ b.nama }} ({{ b.kategori.nama }}, stok {{ b.jumlah_unit }})</option>
+          {% endfor %}
+        </select>
+        <input type="number" name="jumlah" min="1" value="1" placeholder="Jumlah">
+        <button type="button" class="remove" onclick="this.parentElement.remove();">Hapus</button>
+      </div>
+    </div>
+
+    <div class="buttons">
+      <button class="save" type="submit">Ajukan</button>
+      <a class="cancel" href="{{ url_for('peminjaman.index') }}">Batal</a>
+    </div>
+  </form>
+
+  <script>
+    // Simple dynamic row clone (vanilla JS, no deps)
+    function addRow() {
+      var container = document.getElementById('items-container');
+      var firstRow = container.querySelector('.item-row');
+      var newRow = firstRow.cloneNode(true);
+      // Reset values
+      newRow.querySelector('select').value = '';
+      newRow.querySelector('input[type=number]').value = '1';
+      container.appendChild(newRow);
+    }
+  </script>
+</body>
+</html>

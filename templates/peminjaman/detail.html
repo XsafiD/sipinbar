@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Detail Peminjaman — SIPINBAR</title>
+  <!--
+    STUB template (M3 §4.1) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-08 (UI Spec SCR-09) dengan layout
+    base.html + komponen card/table/badge/modal + timeline status.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    .info-grid { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin-top: 16px; }
+    .info-grid dt { font-weight: bold; color: #374151; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .badge.diajukan { background: #fef3c7; color: #b45309; }
+    .badge.disetujui { background: #dcfce7; color: #15803d; }
+    .badge.ditolak { background: #fee2e2; color: #b91c1c; }
+    .badge.dipinjam { background: #dbeafe; color: #1d4ed8; }
+    .badge.terlambat { background: #fee2e2; color: #b91c1c; }
+    .badge.dikembalikan { background: #e5e7eb; color: #6b7280; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f3f4f6; }
+    .actions { margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+    a.button, button.button { display: inline-block; padding: 6px 12px; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; font-size: 14px; }
+    a.setujui { background: #16a34a; }
+    button.tolak { background: #dc2626; }
+    button.pinjam { background: #2563eb; }
+    a.kembalikan { background: #7c3aed; }
+    a.kembali { background: #6b7280; }
+    form.inline { display: inline; }
+    form.inline textarea { display: block; width: 320px; margin: 4px 0; padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; }
+    .timeline { margin: 16px 0; padding: 12px; background: #f9fafb; border-radius: 6px; }
+    .denda-box { margin-top: 16px; padding: 12px; background: #fef3c7; border: 1px solid #f59e0b; border-radius: 6px; }
+  </style>
+</head>
+<body>
+  <h1>{{ peminjaman.kode_peminjaman }}</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <dl class="info-grid">
+    <dt>Status</dt>
+    <dd><span class="badge {{ peminjaman.status }}">{{ peminjaman.get_status_display() }}</span></dd>
+    <dt>Peminjam</dt>
+    <dd>{{ peminjaman.warga.nama_lengkap }} (NIK: {{ peminjaman.warga.nik }})</dd>
+    <dt>Tanggal Pinjam</dt>
+    <dd>{{ peminjaman.tanggal_pinjam.isoformat() }}</dd>
+    <dt>Rencana Kembali</dt>
+    <dd>{{ peminjaman.tanggal_kembali_rencana.isoformat() }}</dd>
+    {% if peminjaman.tanggal_kembali_aktual %}
+    <dt>Kembali Aktual</dt>
+    <dd>{{ peminjaman.tanggal_kembali_aktual.isoformat() }}</dd>
+    {% endif %}
+    <dt>Catatan</dt>
+    <dd>{{ peminjaman.catatan or '-' }}</dd>
+    {% if peminjaman.alasan_penolakan %}
+    <dt>Alasan Ditolak</dt>
+    <dd>{{ peminjaman.alasan_penolakan }}</dd>
+    {% endif %}
+    {% if peminjaman.approved_by %}
+    <dt>Disetujui Oleh</dt>
+    <dd>{{ peminjaman.approved_by.nama_lengkap }}</dd>
+    {% endif %}
+  </dl>
+
+  <div class="timeline">
+    <strong>Timeline:</strong>
+    Diajukan → {% if peminjaman.status != 'ditolak' %}Disetujui → Dipinjam → Dikembalikan{% else %}<em>Ditolak</em>{% endif %}
+  </div>
+
+  {% if peminjaman.detail_list %}
+    <h2>Barang Dipinjam</h2>
+    <table>
+      <thead>
+        <tr><th>Barang</th><th>Kategori</th><th>Jumlah</th><th>Tarif Denda/Hari</th>{% if peminjaman.status == 'dikembalikan' %}<th>Kondisi Kembali</th>{% endif %}</tr>
+      </thead>
+      <tbody>
+        {% for d in peminjaman.detail_list %}
+        <tr>
+          <td>{{ d.barang.nama }}</td>
+          <td>{{ d.barang.kategori.nama }}</td>
+          <td>{{ d.jumlah }}</td>
+          <td>Rp {{ d.barang.kategori.tarif_denda_per_hari }}</td>
+          {% if peminjaman.status == 'dikembalikan' %}<td>{{ d.kondisi_kembali or '-' }}</td>{% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  {% if peminjaman.total_denda_rupiah > 0 %}
+    <div class="denda-box">
+      <strong>Total Denda: Rp {{ peminjaman.total_denda_rupiah:, }}</strong>
+      {% if peminjaman.get_jumlah_hari_terlambat() > 0 %}
+        (Terlambat {{ peminjaman.get_jumlah_hari_terlambat() }} hari)
+      {% endif %}
+    </div>
+  {% endif %}
+
+  <div class="actions">
+    {% if session.get('role') == 'admin' %}
+      {% if peminjaman.status == 'diajukan' %}
+        <form class="inline" method="post" action="{{ url_for('peminjaman.setujui', peminjaman_id=peminjaman.id) }}">
+          {{ confirm_form.csrf_token }}
+          <button class="button setujui" type="submit">Setujui</button>
+        </form>
+        <form class="inline" method="post" action="{{ url_for('peminjaman.tolak', peminjaman_id=peminjaman.id) }}">
+          {{ reject_form.csrf_token }}
+          <label for="alasan_{{ peminjaman.id }}" style="display:block; font-weight:bold; font-size:14px;">Alasan Penolakan:</label>
+          <textarea id="alasan_{{ peminjaman.id }}" name="alasan" rows="2" placeholder="Wajib diisi..." required></textarea>
+          <button class="button tolak" type="submit">Tolak</button>
+        </form>
+      {% elif peminjaman.status == 'disetujui' %}
+        <form class="inline" method="post" action="{{ url_for('peminjaman.pinjam', peminjaman_id=peminjaman.id) }}">
+          {{ confirm_form.csrf_token }}
+          <button class="button pinjam" type="submit">Tandai Dipinjam</button>
+        </form>
+      {% elif peminjaman.status in ('dipinjam', 'terlambat') %}
+        <a class="button kembalikan" href="{{ url_for('peminjaman.kembalikan', peminjaman_id=peminjaman.id) }}">Proses Pengembalian</a>
+      {% endif %}
+    {% endif %}
+    <a class="button kembali" href="{{ url_for('peminjaman.index') }}">Kembali</a>
+  </div>
+</body>
+</html>
