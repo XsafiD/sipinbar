@@ -1,0 +1,179 @@
+/*
+ * static/css/style.css — Custom CSS di luar Tailwind untuk SIPINBAR.
+ *
+ * Berisi:
+ *   1. Print styles untuk laporan (T-FE-02, Q-13 handoff)
+ *   2. Animasi transisi (sidebar toggle, modal, alert)
+ *   3. Override Tailwind jika perlu
+ *   4. Helper utility untuk komponen yang sulit dilakukan纯 Tailwind
+ *
+ * Refs: TODO T-FE-02, design-system-v1.0.0-sipinbar.md, handoff Q-13
+ */
+
+/* ─────────────────────────────────────────────────────────────
+ * 1. PRINT STYLES (untuk laporan SCR-14/15/16, tombol "Cetak")
+ * ───────────────────────────────────────────────────────────── */
+@media print {
+  /* Sembunyikan elemen non-essential saat cetak */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Tampilkan elemen khusus print (mis. header laporan) */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Background putih, hemat tinta */
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 12pt;
+  }
+
+  /* Hindari page-break di dalam tabel & card */
+  table,
+  .print-avoid-break {
+    page-break-inside: avoid;
+  }
+
+  /* Link tidak menampilkan URL saat cetak */
+  a[href]::after {
+    content: "";
+  }
+
+  /* Pastikan warna border tercetak */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* Default: elemen print-only tersembunyi di layar */
+.print-only {
+  display: none;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * 2. ANIMASI TRANSISI
+ * ───────────────────────────────────────────────────────────── */
+
+/* Sidebar slide animation (mobile) */
+#sidebar {
+  transition: transform 0.3s ease-in-out;
+}
+
+#sidebar.is-open {
+  transform: translateX(0);
+}
+
+#sidebar-overlay {
+  transition: opacity 0.2s ease-in-out;
+  opacity: 0;
+}
+
+#sidebar-overlay.is-visible {
+  opacity: 1;
+}
+
+/* Modal fade & scale animation */
+[data-modal] {
+  transition: opacity 0.2s ease-in-out;
+}
+
+[data-modal] [data-modal-panel] {
+  transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+  transform: scale(0.95);
+  opacity: 0;
+}
+
+[data-modal].is-open [data-modal-panel] {
+  transform: scale(1);
+  opacity: 1;
+}
+
+/* Alert slide-down */
+[data-alert] {
+  animation: alert-slide-down 0.25s ease-out;
+}
+
+@keyframes alert-slide-down {
+  from {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * 3. OVERRIDE TAILWIND (jika diperlukan)
+ * ───────────────────────────────────────────────────────────── */
+
+/* Pastikan body punya min-height agar footer sticky bottom bekerja */
+body {
+  min-height: 100vh;
+}
+
+/* Scrollbar styling (subtle, optional) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * 4. HELPER UTILITY
+ * ───────────────────────────────────────────────────────────── */
+
+/* Sembunyikan elemen dari screen reader tapi tampil visual */
+.sr-only-not-focusable {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Truncate teks multi-baris (untuk nama barang panjang di card) */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Focus ring konsisten untuk accessibility */
+*:focus-visible {
+  outline: 2px solid #059669;
+  outline-offset: 2px;
+}
+
+/* Disable transition saat user prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

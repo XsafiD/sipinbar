@@ -15,7 +15,7 @@ Tanggung jawab:
 import os
 from typing import Optional
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, render_template, request
 
 from config import Config
 from models import db
@@ -63,19 +63,58 @@ def create_app(config_class: type = Config) -> Flask:
         )
 
     # ── Error Handlers ────────────────────────────────────────
+    # Render halaman error HTML yang ramah pengguna (T-FE-14, handoff Q-14).
+    # JSON response tetap dipertahankan untuk request API/JSON (mis. /health
+    # tidak memicu error handler selama sukses 200).
     @app.errorhandler(404)
     def not_found(err):
-        return jsonify(status="error", error="not_found", message=str(err)), 404
+        if _wants_json():
+            return jsonify(status="error", error="not_found",
+                           message=str(err) or "Halaman tidak ditemukan"), 404
+        return render_template(
+            "error.html",
+            error_code=404,
+            error_title="Halaman Tidak Ditemukan",
+            error_message="Maaf, halaman yang Anda cari tidak tersedia atau telah dipindahkan.",
+        ), 404
+
+    @app.errorhandler(403)
+    def forbidden(err):
+        if _wants_json():
+            return jsonify(status="error", error="forbidden",
+                           message="Akses ditolak"), 403
+        return render_template(
+            "error.html",
+            error_code=403,
+            error_title="Akses Ditolak",
+            error_message="Anda tidak memiliki izin untuk mengakses halaman ini.",
+        ), 403
 
     @app.errorhandler(500)
     def server_error(err):
         app.logger.exception("Internal server error: %s", err)
-        return (
-            jsonify(status="error", error="internal_error", message="Server error"),
-            500,
-        )
+        if _wants_json():
+            return jsonify(status="error", error="internal_error",
+                           message="Server error"), 500
+        return render_template(
+            "error.html",
+            error_code=500,
+            error_title="Kesalahan Server",
+            error_message="Terjadi kesalahan internal di server. Tim kami telah diberi notifikasi.",
+        ), 500
 
     return app
+
+
+def _wants_json() -> bool:
+    """Heuristik apakah request ini mengharapkan respons JSON.
+
+    Dipakai error handler untuk memilih antara HTML template (browser) atau
+    JSON payload (API client / test client yang set Accept: application/json).
+    """
+    best = request.accept_mimetypes.best_match(["application/json", "text/html"])
+    return best == "application/json" and request.accept_mimetypes[best] > \
+        request.accept_mimetypes["text/html"]
 
 
 def _enable_sqlite_fk_pragma(app: Flask) -> None:

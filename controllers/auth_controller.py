@@ -13,11 +13,10 @@ Session contract (di-set di sini, dibaca oleh ``decorators``):
 
 Catatan scope:
   Setelah login sukses, user di-redirect ke ``/dashboard``. Endpoint
-  ``/dashboard`` SEHARUSNYA dikelola oleh ``dashboard_bp`` (task T-FE-04
-  di section 3.4). Untuk M2 §3.1, dibuat placeholder minimal di sini
-  agar alur login→dashboard bisa diuji end-to-end. Frontend dev akan
-  memindahkan ke ``controllers/dashboard_controller.py`` saat T-FE-04
-  dikerjakan.
+  ``/dashboard`` dikelola oleh ``dashboard_bp`` di
+  ``controllers/dashboard_controller.py`` (diimplementasi di T-FE-04,
+  section 3.4). Sebelum T-FE-04 selesai, placeholder pernah ada di sini
+  agar alur auth bisa dites — sekarang sudah dipindahkan.
 
 Refs: SRS §4.1.3 & §6.1, UI Spec SCR-01 & SCR-02, TODO T-AUTH-03
 """
@@ -125,10 +124,8 @@ def login():
         session["nama"] = user.nama_lengkap
 
         flash(f"Selamat datang, {user.nama_lengkap}!", "success")
-        # Sementara redirect ke placeholder dashboard (lihat catatan scope di atas).
-        # Saat dashboard_bp terdaftar dengan endpoint 'dashboard.index', ini tetap
-        # berfungsi karena URL path sama. Frontend dev tinggal memindahkan handler.
-        return redirect("/dashboard")
+        # Redirect ke dashboard (dikelola oleh dashboard_bp, T-FE-04).
+        return redirect(url_for("dashboard.index"))
 
     return render_template("auth/login.html", form=form)
 
@@ -169,20 +166,3 @@ def register():
             flash(str(err), "error")
 
     return render_template("auth/register.html", form=form)
-
-
-# ── Placeholder Dashboard (sementara, akan dipindah ke dashboard_bp) ─
-# Catatan: T-FE-04 (section 3.4) akan membuat dashboard_controller.py
-# dengan route `/dashboard`. Endpoint di bawah ini memastikan alur auth
-# bisa dites end-to-end di M2 §3.1 tanpa menunggu frontend.
-@auth_bp.route("/dashboard")
-@login_required
-def _placeholder_dashboard():
-    """Dashboard sementara — tampilkan greeting sesuai role."""
-    return (
-        f"<!doctype html><title>Dashboard SIPINBAR</title>"
-        f"<h1>Halo, {session.get('nama', '?')}!</h1>"
-        f"<p>Role: {session.get('role')}</p>"
-        f"<p><em>Placeholder dashboard — akan digantikan oleh T-FE-04.</em></p>"
-        f'<p><a href="{url_for("auth.logout")}">Logout</a></p>'
-    )

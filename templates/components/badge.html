@@ -1,0 +1,31 @@
+{# templates/components/badge.html
+
+  Macro `render_badge(status)` — helper TUNGGAL untuk semua status badge
+  di seluruh aplikasi. Mapping warna kanonik mengacu Design System §6.
+
+  WAJIB dipakai di semua halaman (resolusi GAP-02 & GAP-03 audit mockup).
+  Jangan hardcode class Tailwind per halaman.
+
+  Refs: TODO T-FE-11, design-system §6, spec-komponen §7
+#}
+{% macro render_badge(status, extra_class='', label=None) %}
+{% set mapping = {
+  'tersedia':     {'class': 'bg-green-100 text-green-700',    'label': 'Tersedia'},
+  'dipinjam':     {'class': 'bg-sky-100 text-sky-700',        'label': 'Dipinjam'},
+  'perbaikan':    {'class': 'bg-yellow-100 text-yellow-800',  'label': 'Perbaikan'},
+  'rusak':        {'class': 'bg-red-100 text-red-700',        'label': 'Rusak'},
+  'dihapus':      {'class': 'bg-gray-100 text-gray-500',      'label': 'Dihapus'},
+  'diajukan':     {'class': 'bg-yellow-100 text-yellow-800',  'label': 'Diajukan'},
+  'disetujui':    {'class': 'bg-green-100 text-green-800',    'label': 'Disetujui'},
+  'terlambat':    {'class': 'bg-red-100 text-red-800',        'label': 'Terlambat'},
+  'dikembalikan': {'class': 'bg-green-100 text-green-800',    'label': 'Dikembalikan'},
+  'ditolak':      {'class': 'bg-red-100 text-red-800',        'label': 'Ditolak'},
+  'menunggu':     {'class': 'bg-yellow-100 text-yellow-800',  'label': 'Menunggu'},
+  'aktif':        {'class': 'bg-green-100 text-green-800',    'label': 'Aktif'},
+  'diblokir':     {'class': 'bg-red-100 text-red-800',        'label': 'Diblokir'},
+} %}
+{% set info = mapping.get(status, {'class': 'bg-gray-100 text-gray-700', 'label': status|title}) %}
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium {{ info.class }} {{ extra_class }}">
+  {{ label or info.label }}
+</span>
+{% endmacro %}

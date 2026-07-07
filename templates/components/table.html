@@ -1,0 +1,71 @@
+{# templates/components/table.html
+
+  Macro `render_table(columns, rows, ...)` — tabel data dengan header, rows,
+  sorting indicator, dan empty state.
+
+  columns: list of dict dengan key:
+    - key:   nama field di row
+    - label: header label
+    - sortable: bool (opsional, default False)
+    - render: callable(row) -> string HTML (opsional, untuk custom cell)
+
+  Refs: TODO T-FE-08, design-system §9, spec-komponen §4
+#}
+{% macro render_table(columns, rows, sort_key=None, sort_dir='asc', empty_message='Belum ada data.') %}
+<div class="overflow-x-auto">
+  <table class="w-full text-left border-collapse">
+    <thead>
+      <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+        {% for col in columns %}
+        <th class="px-6 py-3 font-medium {% if col.sortable %}cursor-pointer hover:text-gray-700{% endif %}">
+          {% if col.sortable %}
+          <a href="?sort={{ col.key }}&dir={{ 'desc' if sort_key == col.key and sort_dir == 'asc' else 'asc' }}" class="flex items-center space-x-1">
+            <span>{{ col.label }}</span>
+            {% if sort_key == col.key %}
+            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+              {% if sort_dir == 'asc' %}
+              <path d="M5 10l5-5 5 5H5z"></path>
+              {% else %}
+              <path d="M5 10l5 5 5-5H5z"></path>
+              {% endif %}
+            </svg>
+            {% endif %}
+          </a>
+          {% else %}
+          {{ col.label }}
+          {% endif %}
+        </th>
+        {% endfor %}
+      </tr>
+    </thead>
+    <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
+      {% if rows %}
+        {% for row in rows %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          {% for col in columns %}
+          <td class="px-6 py-4">
+            {% if col.render %}
+              {{ col.render(row) | safe }}
+            {% else %}
+              {{ row.get(col.key, '') if row is mapping else '' }}
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      {% else %}
+      <tr>
+        <td colspan="{{ columns | length }}" class="px-6 py-12 text-center text-gray-400">
+          <div class="flex flex-col items-center">
+            <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <p class="text-sm">{{ empty_message }}</p>
+          </div>
+        </td>
+      </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+{% endmacro %}

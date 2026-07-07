@@ -1,0 +1,63 @@
+{# templates/components/modal.html
+
+  Macro `render_modal(id, title, variant)` — dialog overlay dengan judul, body,
+  dan footer. Trigger via `data-modal-target="<id>"`.
+
+  Macro `render_modal_trigger(target_id, label, variant, icon_path)` — tombol
+  yang membuka modal.
+
+  JS interaksi di static/js/app.js (T-FE-03):
+    - data-modal-target → buka modal
+    - data-modal-close  → tutup
+    - data-modal-overlay → klik overlay tutup
+    - Esc key → tutup modal aktif
+
+  Refs: TODO T-FE-13, design-system §9, spec-komponen §9, handoff Q-09
+#}
+{% macro render_modal(id, title, variant='default') %}
+<div id="{{ id }}" class="fixed inset-0 z-50 hidden overflow-y-auto" aria-modal="true" role="dialog" data-modal>
+  {# Overlay #}
+  <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" data-modal-overlay></div>
+  {# Panel #}
+  <div class="flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white rounded-xl shadow-xl max-w-md w-full" data-modal-panel>
+      {# Header #}
+      <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+        <h3 class="text-lg font-semibold text-gray-800">{{ title }}</h3>
+        <button type="button" class="text-gray-400 hover:text-gray-600" data-modal-close aria-label="Tutup">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      {# Body (via caller) #}
+      <div class="px-6 py-4">{{ caller() }}</div>
+      {# Footer default #}
+      <div class="px-6 py-3 bg-gray-50 border-t border-gray-100 flex justify-end space-x-3 rounded-b-xl">
+        <button type="button" class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm" data-modal-close>Batal</button>
+        {% if variant == 'danger' %}
+        <button type="submit" form="{{ id }}-form" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">Hapus</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endmacro %}
+
+{# Trigger button #}
+{% macro render_modal_trigger(target_id, label, variant='primary', icon_path=None) %}
+{% set variants = {
+  'primary': 'bg-brand-600 text-white hover:bg-brand-700',
+  'danger':  'bg-red-600 text-white hover:bg-red-700',
+  'ghost':   'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
+} %}
+<button type="button" data-modal-target="{{ target_id }}"
+        class="{{ variants.get(variant, variants.primary) }} px-4 py-2 rounded-lg transition-colors font-medium text-sm inline-flex items-center">
+  {% if icon_path %}
+  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon_path }}"></path>
+  </svg>
+  {% endif %}
+  {{ label }}
+</button>
+{% endmacro %}

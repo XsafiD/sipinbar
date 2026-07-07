@@ -1,0 +1,82 @@
+{# templates/components/form.html
+
+  Macro `render_field(name, label, ...)` — form group dengan label, input,
+  error message, dan help text. Support berbagai tipe input.
+
+  Macro `render_form(action, ...)` — wrapper <form> dengan CSRF + submit button.
+
+  Kompatibel dengan Flask-WTF: pass form.errors ke parameter `error` per field.
+
+  Refs: TODO T-FE-09, design-system §3 & §9, spec-komponen §5, handoff Q-10
+#}
+{% macro render_field(name, label, type='text', value='', placeholder='', required=False, help='', error='', options=None, icon_path=None) %}
+<div class="{% if type == 'file' %}mb-4{% else %}mb-5{% endif %}">
+  <label for="{{ name }}" class="block text-sm font-medium text-gray-700 mb-1">
+    {{ label }}
+    {% if required %}<span class="text-red-500">*</span>{% endif %}
+  </label>
+
+  {% if type == 'textarea' %}
+  <textarea id="{{ name }}" name="{{ name }}" placeholder="{{ placeholder }}" {{ 'required' if required else '' }}
+    class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none {{ 'border-red-500' if error else 'border-gray-300' }}">{{ value }}</textarea>
+
+  {% elif type == 'select' %}
+  <select id="{{ name }}" name="{{ name }}" {{ 'required' if required else '' }}
+    class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors {{ 'border-red-500' if error else 'border-gray-300' }}">
+    <option value="">{{ placeholder or 'Pilih...' }}</option>
+    {% for opt in (options or []) %}
+    <option value="{{ opt.value }}" {{ 'selected' if opt.value == value else '' }}>{{ opt.label }}</option>
+    {% endfor %}
+  </select>
+
+  {% elif type == 'file' %}
+  <input type="file" id="{{ name }}" name="{{ name }}" {{ 'required' if required else '' }}
+    class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer">
+
+  {% else %}
+  <div class="relative">
+    {% if icon_path %}
+    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon_path }}"></path>
+      </svg>
+    </div>
+    {% endif %}
+    <input type="{{ type }}" id="{{ name }}" name="{{ name }}" value="{{ value }}" placeholder="{{ placeholder }}" {{ 'required' if required else '' }}
+      class="{{ 'pl-10' if icon_path else 'pl-4' }} w-full py-2.5 pr-4 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none {{ 'border-red-500' if error else 'border-gray-300' }}">
+  </div>
+  {% endif %}
+
+  {% if help %}
+  <p class="mt-1 text-xs text-gray-500">{{ help }}</p>
+  {% endif %}
+  {% if error %}
+  <p class="mt-1 text-xs text-red-500 flex items-center">
+    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+      <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.7 7.3a1 1 0 011.4 0L10 7.6l.3-.3a1 1 0 111.4 1.4l-.3.3.3.3a1 1 0 11-1.4 1.4L10 10.4l-.3.3a1 1 0 01-1.4-1.4l.3-.3-.3-.3a1 1 0 010-1.4z"></path>
+    </svg>
+    {{ error }}
+  </p>
+  {% endif %}
+</div>
+{% endmacro %}
+
+{# Render seluruh form dengan CSRF otomatis. Body via caller. #}
+{% macro render_form(action, method='POST', multipart=False, submit_label='Simpan', cancel_url=None, submit_variant='primary') %}
+{% set submit_variants = {
+  'primary': 'bg-brand-600 text-white hover:bg-brand-700',
+  'danger':  'bg-red-600 text-white hover:bg-red-700',
+} %}
+<form action="{{ action }}" method="{{ method }}" {% if multipart %}enctype="multipart/form-data"{% endif %}>
+  {{ csrf_token() if csrf_token is defined else '' }}
+  {{ caller() }}
+  <div class="flex items-center space-x-3 mt-6">
+    <button type="submit" class="px-4 py-2.5 {{ submit_variants.get(submit_variant, submit_variants.primary) }} rounded-lg transition-colors shadow-sm font-medium text-sm">
+      {{ submit_label }}
+    </button>
+    {% if cancel_url %}
+    <a href="{{ cancel_url }}" class="px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm">Batal</a>
+    {% endif %}
+  </div>
+</form>
+{% endmacro %}

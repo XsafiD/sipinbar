@@ -1,0 +1,129 @@
+{# templates/dashboard.html
+
+  Halaman dashboard utama (SCR-03). Menampilkan:
+    - Stat card (total barang, tersedia, peminjaman aktif, terlambat, warga terdaftar)
+    - Tabel 5 peminjaman terbaru
+    - Panel notifikasi terbaru
+
+  Data: DUMMY (dari dashboard_controller). Integrasi real di M3 §4.2 (T-UI-03).
+
+  Role conditional:
+    - admin: lihat stat global + kolom "Peminjam" di tabel
+    - warga: lihat stat pribadi (tanpa "Warga Terdaftar" & "Peminjam")
+
+  Refs: TODO T-FE-14, UI Spec SCR-03, handoff §3.2
+#}
+{% extends "base.html" %}
+{% from "components/card.html" import render_card, render_stat_card %}
+{% from "components/badge.html" import render_badge %}
+
+{% block title %}Dashboard — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Page heading #}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+  <p class="text-sm text-gray-500 mt-1">
+    Selamat datang, {{ session.get('nama', 'User') }}.
+    {% if session.get('role') == 'admin' %}
+      Anda login sebagai Administrator.
+    {% else %}
+      Anda login sebagai Warga.
+    {% endif %}
+  </p>
+</div>
+
+{# ── Stat cards grid ────────────────────────────────────────── #}
+{# TODO: ganti dengan data real dari LaporanService.get_statistik_dashboard() (M3 §4.2) #}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {{ render_stat_card('Total Barang', stats.total_barang, color='blue',
+    icon_path='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4') }}
+  {{ render_stat_card('Tersedia', stats.tersedia, color='green',
+    icon_path='M5 13l4 4L19 7') }}
+  {{ render_stat_card('Peminjaman Aktif', stats.peminjaman_aktif, color='sky',
+    icon_path='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2') }}
+  {{ render_stat_card('Terlambat', stats.terlambat, color='red',
+    icon_path='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z') }}
+</div>
+
+{% if session.get('role') == 'admin' and stats.warga_terdaftar is defined %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {{ render_stat_card('Warga Terdaftar', stats.warga_terdaftar, color='purple',
+    icon_path='M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z') }}
+</div>
+{% endif %}
+
+{# ── 2-column: Peminjaman terbaru + Notifikasi ──────────────── #}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  {# Peminjaman Terbaru (2 kolom di desktop) #}
+  <div class="lg:col-span-2">
+    {% call render_card(title='Peminjaman Terbaru') %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+              <th class="px-4 py-3 font-medium">Kode</th>
+              {% if session.get('role') == 'admin' %}
+              <th class="px-4 py-3 font-medium">Peminjam</th>
+              {% endif %}
+              <th class="px-4 py-3 font-medium">Tgl Pinjam</th>
+              <th class="px-4 py-3 font-medium">Status</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
+            {% for p in recent_peminjaman %}
+            <tr class="hover:bg-gray-50 transition-colors">
+              <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ p.kode }}</td>
+              {% if session.get('role') == 'admin' %}
+              <td class="px-4 py-3">{{ p.peminjam }}</td>
+              {% endif %}
+              <td class="px-4 py-3">{{ p.tgl_pinjam }}</td>
+              <td class="px-4 py-3">{{ render_badge(p.status) }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="4" class="px-4 py-8 text-center text-gray-400 text-sm">
+                Belum ada peminjaman.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endcall %}
+  </div>
+
+  {# Notifikasi terbaru (1 kolom) #}
+  <div class="lg:col-span-1">
+    {% call render_card(title='Notifikasi Terbaru') %}
+      <div class="space-y-3">
+        {% for n in notifications %}
+        {% set tipe_styles = {
+          'info':       {'dot': 'bg-sky-500',    'bg': 'bg-sky-50'},
+          'pengingat':  {'dot': 'bg-yellow-500', 'bg': 'bg-yellow-50'},
+          'peringatan': {'dot': 'bg-red-500',    'bg': 'bg-red-50'},
+        } %}
+        {% set ts = tipe_styles.get(n.tipe, tipe_styles.info) %}
+        <div class="flex items-start space-x-3 p-3 rounded-lg {{ ts.bg }} {{ 'ring-2 ring-brand-200' if n.unread else '' }}">
+          <span class="block h-2.5 w-2.5 rounded-full {{ ts.dot }} mt-1.5 flex-shrink-0"></span>
+          <div class="min-w-0 flex-1">
+            <p class="text-sm font-medium text-gray-800">{{ n.judul }}</p>
+            <p class="text-xs text-gray-600 mt-0.5">{{ n.pesan }}</p>
+            <p class="text-xs text-gray-400 mt-1">{{ n.timestamp }}</p>
+          </div>
+        </div>
+        {% else %}
+        <p class="text-sm text-gray-400 text-center py-6">Tidak ada notifikasi.</p>
+        {% endfor %}
+      </div>
+      <div class="mt-4 pt-3 border-t border-gray-100">
+        <a href="{{ url_for('laporan.notifikasi') }}" class="text-sm text-brand-600 font-medium hover:text-brand-700">
+          Lihat semua notifikasi →
+        </a>
+      </div>
+    {% endcall %}
+  </div>
+
+</div>
+{% endblock %}

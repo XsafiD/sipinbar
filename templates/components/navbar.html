@@ -1,0 +1,53 @@
+{# templates/components/navbar.html
+
+  Macro `render_navbar(title, actions)` — header atas dengan judul halaman,
+  tombol hamburger (mobile), lonceng notifikasi, dan profil user.
+
+  Session contract (dari auth_controller.login):
+    - session['nama']  → nama user untuk profil
+    - session['role']  → 'admin' / 'warga'
+    - session['user_id']
+
+  Refs: TODO T-FE-05, design-system §7.1, spec-komponen §1
+#}
+{% macro render_navbar(title=None, actions=None) %}
+{% set current_title = title or (request.endpoint | title if request.endpoint else 'SIPINBAR') %}
+{% set user_name = session.get('nama', 'User') %}
+{% set user_role = session.get('role', 'warga') %}
+{% set unread = session.get('unread_count', 0) %}
+<header class="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 z-10 shadow-sm no-print">
+  <div class="flex items-center">
+    {# Hamburger mobile #}
+    <button type="button" data-sidebar-toggle
+            class="md:hidden text-gray-500 hover:text-gray-700 focus:outline-none p-2 mr-2"
+            aria-label="Toggle sidebar">
+      <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+      </svg>
+    </button>
+    <h2 class="text-xl font-semibold text-gray-800 hidden sm:block">{{ current_title }}</h2>
+  </div>
+  <div class="flex items-center space-x-4">
+    {% if actions %}{{ actions() }}{% endif %}
+    {# Notification bell #}
+    <a href="{{ url_for('laporan.notifikasi') }}" class="relative p-2 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-100 transition-colors" aria-label="Notifikasi">
+      {% if unread > 0 %}
+      <span class="absolute top-1.5 right-1.5 block h-2.5 w-2.5 rounded-full bg-red-500 ring-2 ring-white"></span>
+      {% endif %}
+      <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
+      </svg>
+    </a>
+    {# User profile #}
+    <div class="flex items-center space-x-3 border-l border-gray-200 pl-4">
+      <div class="w-8 h-8 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold text-sm">
+        {{ user_name[0] | upper if user_name else 'U' }}
+      </div>
+      <div class="hidden sm:block text-sm">
+        <p class="font-medium text-gray-700">{{ user_name }}</p>
+        <p class="text-gray-500 text-xs">{{ 'Administrator' if user_role == 'admin' else 'Warga' }}</p>
+      </div>
+    </div>
+  </div>
+</header>
+{% endmacro %}

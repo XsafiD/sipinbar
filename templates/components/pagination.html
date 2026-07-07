@@ -1,0 +1,73 @@
+{# templates/components/pagination.html
+
+  Macro `render_pagination(page, total_pages, endpoint, query_args)` —
+  navigasi halaman dengan prev/next + nomor, ellipsis jika banyak.
+
+  Query string preservation: argumen `query_args` dilewatkan ke url_for sebagai
+  **q, sehingga filter/search tidak hilang saat pindah halaman.
+
+  Refs: TODO T-FE-12, design-system §8, spec-komponen §8, audit GAP-04
+#}
+{% macro render_pagination(page, total_pages, endpoint, query_args=None) %}
+{% if total_pages and total_pages > 1 %}
+{% set q = query_args or {} %}
+{% set window = 2 %}
+
+<nav class="flex items-center justify-between mt-6 px-4" aria-label="Pagination">
+  {# Info halaman #}
+  <div class="hidden sm:block">
+    <p class="text-sm text-gray-500">
+      Halaman <span class="font-medium text-gray-700">{{ page }}</span> dari <span class="font-medium text-gray-700">{{ total_pages }}</span>
+    </p>
+  </div>
+
+  {# Tombol #}
+  <div class="flex-1 flex items-center justify-between sm:justify-end space-x-1">
+    {# Prev #}
+    {% if page > 1 %}
+    <a href="{{ url_for(endpoint, page=page-1, **q) }}"
+       class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+      <span class="sr-only">Sebelumnya</span>
+    </a>
+    {% else %}
+    <span class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+    </span>
+    {% endif %}
+
+    {# Nomor halaman dengan ellipsis #}
+    <div class="hidden md:flex space-x-1">
+      {% for p in range(1, total_pages + 1) %}
+        {% if p == 1 or p == total_pages or (p >= page - window and p <= page + window) %}
+          {% if p == page %}
+          <span class="relative inline-flex items-center px-4 py-2 rounded-md border border-brand-600 bg-brand-600 text-sm font-medium text-white">{{ p }}</span>
+          {% else %}
+          <a href="{{ url_for(endpoint, page=p, **q) }}"
+             class="relative inline-flex items-center px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">{{ p }}</a>
+          {% endif %}
+        {% elif p == page - window - 1 or p == page + window + 1 %}
+          <span class="relative inline-flex items-center px-4 py-2 text-gray-400">…</span>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    {# Mobile: current/total #}
+    <span class="md:hidden text-sm text-gray-500 px-2">{{ page }} / {{ total_pages }}</span>
+
+    {# Next #}
+    {% if page < total_pages %}
+    <a href="{{ url_for(endpoint, page=page+1, **q) }}"
+       class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+      <span class="sr-only">Berikutnya</span>
+    </a>
+    {% else %}
+    <span class="relative inline-flex items-center px-3 py-2 rounded-md border border-gray-200 bg-gray-50 text-sm font-medium text-gray-300 cursor-not-allowed">
+      <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+    </span>
+    {% endif %}
+  </div>
+</nav>
+{% endif %}
+{% endmacro %}
