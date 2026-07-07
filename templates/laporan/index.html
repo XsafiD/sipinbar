@@ -93,8 +93,4 @@
   {% endcall %}
 </div>
 
-{# ── Info generated at #}
-<div class="mt-6 text-center text-xs text-gray-400">
-  Statistik di-generate pada: {{ statistik.generated_at[:19] | replace('T', ' ') if statistik.generated_at else '-' }}
-</div>
 {% endblock %}
