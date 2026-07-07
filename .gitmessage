@@ -1,0 +1,33 @@
+# ============================================================
+# ATURAN COMMIT — PROJECT SIPINBAR
+# ============================================================
+# Format WAJIB:
+#
+#   YYYY-MM-DD - Judul Commit Singkat
+#
+#   Detail commit (opsional):
+#   - Poin detail 1
+#   - Poin detail 2
+#
+# ------------------------------------
+# Contoh:
+# ------------------------------------
+# 2026-07-07 - Tambah fitur login warga
+#
+# - Implementasi endpoint /auth/login dengan rate limiting
+# - Hash password menggunakan werkzeug.security
+# - Tambah unit test untuk autentikasi
+#
+# ------------------------------------
+# Ketentuan:
+# ------------------------------------
+# 1. Baris pertama WAJIB diawali tanggal format ISO (YYYY-MM-DD).
+# 2. Judul commit gunakan bahasa imperatif (Tambah, Fix, Refactor, Hapus).
+# 3. Judul commit maksimal ~50 karakter.
+# 4. Baris kedua dikosongkan sebelum detail.
+# 5. Detail commit gunakan poin-poin (-) untuk keterbacaan.
+#
+# Catatan: Tanggal akan otomatis ditambahkan oleh hook
+# prepare-commit-msg jika kamu tidak mengetikkannya manual.
+# Hapus baris yang diawali '#' sebelum menyimpan.
+# ============================================================

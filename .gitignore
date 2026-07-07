@@ -1,0 +1,8 @@
+# ============================================================
+# .gitignore — Project Tugas Besar OOP
+# ============================================================
+
+# Dokumen & folder project SIPINBAR — dikelola terpisah,
+# tidak masuk repository ini
+*-sipinbar.md
+*-sipinbar/
