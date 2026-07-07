@@ -27,7 +27,7 @@ from typing import List, Optional
 from sqlalchemy import and_
 
 from models import db, utcnow
-from models.notifikasi import Notifikasi, NotifikasiInApp, TIPE_NOTIFIKASI
+from models.notifikasi import Notifikasi, NotifikasiInApp
 from models.peminjaman import Peminjaman
 
 

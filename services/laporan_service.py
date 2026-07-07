@@ -22,7 +22,7 @@ Refs: SRS §4.5, PRD FR-06, arsitektur-db §5.7, TODO T-LAP-02
 from datetime import date
 from typing import Optional
 
-from models import db, utcnow
+from models import utcnow
 from models.barang import Barang
 from models.laporan import LaporanInventaris, LaporanPeminjaman
 from models.peminjaman import Peminjaman, STATUS_PEMINJAMAN

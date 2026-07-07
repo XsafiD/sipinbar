@@ -24,7 +24,6 @@ import pytest
 from models import db
 from models.admin import Admin
 from models.barang import Barang, Kategori
-from models.notifikasi import Notifikasi
 from models.warga import Warga
 from services.notifikasi_service import NotifikasiService
 from services.peminjaman_service import PeminjamanService
@@ -712,7 +711,7 @@ class TestSendRemindersCLI:
         peminjaman_service
     ):
         """Ada peminjaman dipinjam jatuh tempo besok → output 1."""
-        pjm = _buat_peminjaman_dipinjam(
+        _buat_peminjaman_dipinjam(
             peminjaman_service, warga_aktif,
             barang_set["Proyektor"], admin_user, TMROW
         )

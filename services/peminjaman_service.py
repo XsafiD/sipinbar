@@ -32,7 +32,6 @@ from sqlalchemy import func
 from models import db
 from models.barang import Barang
 from models.peminjaman import (
-    KONDISI_KEMBALI,
     Peminjaman,
     DetailPeminjaman,
     STATUS_PEMINJAMAN,

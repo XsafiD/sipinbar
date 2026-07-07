@@ -13,7 +13,6 @@ Tanggung jawab:
   5. Buat tabel di first-run (opsional, seed.py juga melakukan ini)
 """
 import os
-from typing import Optional
 
 from flask import Flask, jsonify, render_template, request
 

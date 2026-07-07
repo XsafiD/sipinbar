@@ -18,8 +18,9 @@ statistik yang lebih kaya di M4.
 import csv
 import io
 from datetime import date
+from typing import Optional
 
-from models import db, utcnow
+from models import utcnow
 from models.base import LaporanBase
 
 
@@ -32,9 +33,9 @@ class LaporanPeminjaman(LaporanBase):
 
     def generate(
         self,
-        tanggal_mulai: date = None,
-        tanggal_selesai: date = None,
-        status: str = None,
+        tanggal_mulai: Optional[date] = None,
+        tanggal_selesai: Optional[date] = None,
+        status: Optional[str] = None,
         **kwargs,
     ) -> dict:
         """

@@ -210,7 +210,7 @@ class TestLaporanPeminjaman:
         warga_aktif, barang_set, admin_user
     ):
         """Distribusi status menghitung benar per kategori."""
-        pjm1 = peminjaman_service.ajukan(
+        peminjaman_service.ajukan(
             warga_id=warga_aktif.id,
             items=[{"barang_id": barang_set["Proyektor"].id, "jumlah": 1}],
             tgl_pinjam=TMROW,
@@ -431,7 +431,7 @@ class TestLaporanStatistikDashboard:
             tgl_pinjam=TMROW,
             tgl_kembali=DAY_AFTER,
         )
-        pjm2 = peminjaman_service.ajukan(
+        peminjaman_service.ajukan(
             warga_id=warga_aktif.id,
             items=[{"barang_id": barang_set["Kursi Lipat"].id, "jumlah": 1}],
             tgl_pinjam=LAST_WEEK,

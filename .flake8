@@ -1,0 +1,26 @@
+# ============================================================
+# .flake8 — Konfigurasi PEP 8 linting untuk SIPINBAR
+# ============================================================
+# Dipakai oleh: flake8 models/ services/ controllers/ tests/ app.py
+# AC T-INT-09: tidak ada error (warning boleh < 20)
+# ============================================================
+
+[flake8]
+max-line-length = 100
+extend-ignore =
+    # E203: whitespace before ':' (conflict dengan black formatter)
+    E203,
+    # W503: line break before binary operator (conflict dengan black)
+    W503
+exclude =
+    .git,
+    __pycache__,
+    venv,
+    instance,
+    .pytest_cache,
+    docs,
+    docs-sipinbar,
+    ui-referensi-sipinbar
+per-file-ignores =
+    # Test files boleh ada unused vars untuk fixture setup readability
+    tests/__init__.py:F401

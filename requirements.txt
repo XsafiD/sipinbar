@@ -28,3 +28,12 @@ pytest==8.2.0
 
 # Development server reload
 python-dotenv==1.0.1
+
+# ── Dev / Quality Assurance (T-INT-09 & T-INT-10) ──
+# Install: pip install -r requirements.txt
+# flake8: PEP 8 linting (AC T-INT-09: 0 error, warning < 20)
+# black: code formatter (opsional, tersedia untuk auto-format)
+# mypy: static type checking pada model layer (AC T-INT-10)
+flake8==7.1.1
+black==24.8.0
+mypy==1.11.2

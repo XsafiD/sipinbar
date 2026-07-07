@@ -401,7 +401,7 @@ class TestAlternatePathE2E:
         self, anon_client, admin_client, barang_set
     ):
         """FR-03.3: pengajuan kedua yang bentrok jadwal → ditolak."""
-        wid = _setup_warga_aktif(anon_client, admin_client)
+        _setup_warga_aktif(anon_client, admin_client)
         proyektor = barang_set["Proyektor"]  # 2 unit total
 
         # Peminjaman A: semua unit (2), D+1 s/d D+7
@@ -424,7 +424,7 @@ class TestAlternatePathE2E:
         self, anon_client, admin_client, barang_set
     ):
         """Pengajuan dengan rentang non-overlap tetap diizinkan."""
-        wid = _setup_warga_aktif(anon_client, admin_client)
+        _setup_warga_aktif(anon_client, admin_client)
         proyektor = barang_set["Proyektor"]
 
         # Peminjaman A: D+1 s/d D+3
@@ -554,9 +554,13 @@ class TestRoleBasedAccessE2E:
     ):
         """Warga A tidak bisa lihat peminjaman milik warga B."""
         # Warga A
-        wid_a = _setup_warga_aktif(anon_client, admin_client, nik="3171010101010011")
+        _setup_warga_aktif(anon_client, admin_client, nik="3171010101010011")
         # Warga B buat peminjaman (via client terpisah)
-        client_b = anon_client.application.test_client() if hasattr(anon_client, "application") else None
+        client_b = (
+            anon_client.application.test_client()
+            if hasattr(anon_client, "application")
+            else None
+        )
         # Gunakan app fixture dari anon_client
         _register_warga(client_b, nik="3171010101010022", nama="Warga B")
         wid_b = _get_warga_id("3171010101010022")

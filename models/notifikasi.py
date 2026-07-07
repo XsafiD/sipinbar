@@ -11,6 +11,8 @@ Pilar OOP:
     ABC untuk kanal in-app. Kelas turunan lain (mis. NotifikasiEmail,
     NotifikasiWhatsApp) bisa ditambah tanpa mengubah caller.
 """
+from typing import Optional, cast
+
 from models import db, generate_uuid, utcnow
 from models.base import NotifikasiBase
 
@@ -128,7 +130,7 @@ class NotifikasiInApp(NotifikasiBase):
         tipe: str,
         judul: str,
         pesan: str,
-        peminjaman_id: str = None,
+        peminjaman_id: Optional[str] = None,
     ) -> None:
         if tipe not in TIPE_NOTIFIKASI:
             raise ValueError(
@@ -160,7 +162,7 @@ class NotifikasiInApp(NotifikasiBase):
 
     def get_preview(self) -> str:
         """Preview singkat sebelum/not-after kirim."""
-        pesan = self._data["pesan"]
+        pesan = cast(str, self._data["pesan"])
         if len(pesan) <= 80:
             return pesan
         return pesan[:79] + "…"

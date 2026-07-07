@@ -22,7 +22,7 @@ import pytest
 from models import db
 from models.admin import Admin
 from models.barang import Barang, Kategori
-from models.peminjaman import DetailPeminjaman, Peminjaman
+from models.peminjaman import Peminjaman
 from models.warga import Warga
 from services.peminjaman_service import PeminjamanService
 

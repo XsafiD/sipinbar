@@ -28,7 +28,7 @@ from typing import List, Optional
 from flask import current_app
 
 from models import db
-from models.barang import Barang, Kategori, KONDISI_BARANG, STATUS_BARANG
+from models.barang import Barang, Kategori, STATUS_BARANG
 from models.peminjaman import DetailPeminjaman, Peminjaman
 
 # ── Aturan validasi upload foto (SRS §7 Keamanan & TODO §7.4 T-SEC-05) ──

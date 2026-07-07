@@ -19,6 +19,7 @@ Pilar OOP:
     ke masing-masing `Barang.hitung_denda()` (yang berbeda per kategori).
 """
 from datetime import date
+from typing import Optional
 
 from models import db, generate_uuid, utcnow
 
@@ -156,7 +157,7 @@ class Peminjaman(db.Model):
             )
         self.status = "terlambat"
 
-    def kembalikan(self, tanggal_aktual: date = None) -> None:
+    def kembalikan(self, tanggal_aktual: Optional[date] = None) -> None:
         """
         Catat pengembalian. Transisi: dipinjam/terlambat → dikembalikan.
 
@@ -207,7 +208,7 @@ class Peminjaman(db.Model):
         if hari <= 0:
             return 0
         total = 0
-        for detail in self.detail_list:
+        for detail in self.detail_list:  # type: ignore[attr-defined]
             # Polymorphism: Barang.hitung_denda() bergantung kategori
             total += detail.barang.hitung_denda(hari) * detail.jumlah
         return total
