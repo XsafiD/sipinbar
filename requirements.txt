@@ -1,0 +1,30 @@
+# ============================================================
+# requirements.txt — SIPINBAR Dependencies
+# ============================================================
+# Python 3.12+
+# Install: pip install -r requirements.txt
+# ============================================================
+
+# Web framework
+Flask==3.0.3
+
+# ORM + SQLite
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.30
+
+# Form handling + CSRF protection
+Flask-WTF==1.2.1
+WTForms==3.1.2
+email-validator==2.1.1
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Password hashing (bagian dari Werkzeug, terpasang otomatis dengan Flask)
+# Werkzeug==3.0.3  # sudahIncluded via Flask
+
+# Testing
+pytest==8.2.0
+
+# Development server reload
+python-dotenv==1.0.1

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Registrasi Warga — SIPINBAR</title>
+  <!--
+    STUB template (M2 §3.1) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-02 (UI Spec SCR-02) dengan layout
+    base.html + komponen dari T-FE-04 s/d T-FE-13.
+  -->
+  <style>
+    body { font-family: sans-serif; max-width: 480px; margin: 40px auto; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error   { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info    { background: #dbeafe; border: 1px solid #3b82f6; }
+    label { display: block; margin: 10px 0 4px; font-weight: bold; }
+    input, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 16px; padding: 10px; width: 100%; }
+    small { color: #6b7280; display: block; margin-top: 2px; }
+    .error { color: #dc2626; }
+  </style>
+</head>
+<body>
+  <h1>Registrasi Warga SIPINBAR</h1>
+  <p><em>Status awal: <strong>menunggu verifikasi admin</strong>.</em></p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post">
+    {{ form.csrf_token }}
+
+    <label for="nik">{{ form.nik.label.text }}</label>
+    {{ form.nik(id="nik", placeholder="16 digit angka") }}
+    {% if form.nik.errors %}<small class="error">{{ form.nik.errors[0] }}</small>{% endif %}
+
+    <label for="nama_lengkap">{{ form.nama_lengkap.label.text }}</label>
+    {{ form.nama_lengkap(id="nama_lengkap") }}
+    {% if form.nama_lengkap.errors %}<small class="error">{{ form.nama_lengkap.errors[0] }}</small>{% endif %}
+
+    <label for="alamat">{{ form.alamat.label.text }}</label>
+    {{ form.alamat(id="alamat", rows=3) }}
+    {% if form.alamat.errors %}<small class="error">{{ form.alamat.errors[0] }}</small>{% endif %}
+
+    <label for="telepon">{{ form.telepon.label.text }}</label>
+    {{ form.telepon(id="telepon", placeholder="0812xxxxxxx") }}
+    {% if form.telepon.errors %}<small class="error">{{ form.telepon.errors[0] }}</small>{% endif %}
+
+    <label for="rt_rw">{{ form.rt_rw.label.text }}</label>
+    {{ form.rt_rw(id="rt_rw", placeholder="001/002") }}
+    {% if form.rt_rw.errors %}<small class="error">{{ form.rt_rw.errors[0] }}</small>{% endif %}
+
+    <button type="submit">Daftar</button>
+  </form>
+
+  <p style="margin-top:20px">
+    Sudah pernah daftar & diverifikasi?
+    <a href="{{ url_for('auth.login') }}">Login</a>
+  </p>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Login — SIPINBAR</title>
+  <!--
+    STUB template (M2 §3.1) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-01 (UI Spec SCR-01) dengan layout
+    base.html + komponen dari T-FE-04 s/d T-FE-13.
+  -->
+  <style>
+    body { font-family: sans-serif; max-width: 380px; margin: 60px auto; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error   { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info    { background: #dbeafe; border: 1px solid #3b82f6; }
+    label { display: block; margin: 10px 0 4px; }
+    input, button { width: 100%; padding: 8px; box-sizing: border-box; }
+    button { margin-top: 16px; }
+  </style>
+</head>
+<body>
+  <h1>SIPINBAR — Login</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="post">
+    {{ form.csrf_token }}
+
+    <label for="username">{{ form.username.label.text }}</label>
+    {{ form.username(id="username", placeholder="username admin atau NIK warga") }}
+    {% if form.username.errors %}
+      <small style="color:#dc2626">{{ form.username.errors[0] }}</small>
+    {% endif %}
+
+    <label for="password">{{ form.password.label.text }}</label>
+    {{ form.password(id="password") }}
+    {% if form.password.errors %}
+      <small style="color:#dc2626">{{ form.password.errors[0] }}</small>
+    {% endif %}
+
+    <button type="submit">Masuk</button>
+  </form>
+
+  <p style="margin-top:20px">
+    Belum punya akun warga?
+    <a href="{{ url_for('auth.register') }}">Daftar di sini</a>
+  </p>
+</body>
+</html>

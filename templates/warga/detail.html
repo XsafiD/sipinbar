@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Detail Warga — SIPINBAR</title>
+  <!--
+    STUB template (M2 §3.1) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-12 (UI Spec SCR-13) dengan layout
+    base.html + komponen card/table/badge.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    .info-grid { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 16px 0; }
+    .info-grid dt { font-weight: bold; color: #374151; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .badge.aktif { background: #dcfce7; color: #15803d; }
+    .badge.menunggu { background: #fef3c7; color: #b45309; }
+    .badge.ditolak, .badge.diblokir { background: #fee2e2; color: #b91c1c; }
+    section { margin: 24px 0; padding: 16px; background: #f9fafb; border-radius: 6px; }
+    form { display: inline-block; margin-right: 8px; }
+    input, textarea, button { padding: 6px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    a { color: #2563eb; }
+  </style>
+</head>
+<body>
+  <p><a href="{{ url_for('admin_warga.index') }}">&larr; Kembali ke daftar warga</a></p>
+
+  <h1>{{ warga.nama_lengkap }}</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <dl class="info-grid">
+    <dt>NIK</dt><dd>{{ warga.nik }}</dd>
+    <dt>Status</dt><dd><span class="badge {{ warga.status }}">{{ warga.status }}</span></dd>
+    <dt>Alamat</dt><dd>{{ warga.alamat }}</dd>
+    <dt>Telepon</dt><dd>{{ warga.telepon }}</dd>
+    <dt>RT/RW</dt><dd>{{ warga.rt_rw }}</dd>
+    {% if warga.alasan_penolakan %}
+      <dt>Alasan Penolakan</dt><dd>{{ warga.alasan_penolakan }}</dd>
+    {% endif %}
+    {% if warga.verified_at %}
+      <dt>Diverifikasi pada</dt><dd>{{ warga.verified_at }}</dd>
+    {% endif %}
+  </dl>
+
+  {# ── Aksi kontekstual sesuai status warga ── #}
+  <section>
+    <h2>Aksi</h2>
+
+    {% if warga.status == 'menunggu' or warga.status == 'ditolak' %}
+      {# Verifikasi: set password awal, ubah status ke aktif #}
+      <form method="post" action="{{ url_for('admin_warga.verify', warga_id=warga.id) }}">
+        {{ verify_form.csrf_token }}
+        <label>Password awal:
+          <input type="password" name="password" minlength="6" required placeholder="min 6 karakter">
+        </label>
+        <button type="submit">Verifikasi Warga</button>
+      </form>
+
+      {% if warga.status == 'menunggu' %}
+        <form method="post" action="{{ url_for('admin_warga.reject', warga_id=warga.id) }}">
+          {{ reject_form.csrf_token }}
+          <label>Alasan:
+            <textarea name="alasan" minlength="5" required placeholder="alasan penolakan"></textarea>
+          </label>
+          <button type="submit">Tolak</button>
+        </form>
+      {% endif %}
+
+    {% elif warga.status == 'aktif' %}
+      <form method="post" action="{{ url_for('admin_warga.blokir', warga_id=warga.id) }}">
+        {{ confirm_form.csrf_token }}
+        <button type="submit" style="background:#ef4444;color:white">Blokir Warga</button>
+      </form>
+
+    {% elif warga.status == 'diblokir' %}
+      <form method="post" action="{{ url_for('admin_warga.aktifkan', warga_id=warga.id) }}">
+        {{ confirm_form.csrf_token }}
+        <button type="submit">Aktifkan Kembali</button>
+      </form>
+    {% endif %}
+  </section>
+
+  <section>
+    <h2>Riwayat Peminjaman</h2>
+    {% if riwayat %}
+      <table>
+        <thead><tr><th>Kode</th><th>Tanggal Pinjam</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for p in riwayat %}
+          <tr>
+            <td>{{ p.kode_peminjaman }}</td>
+            <td>{{ p.tanggal_pinjam }}</td>
+            <td>{{ p.status }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p><em>Belum ada riwayat peminjaman.</em></p>
+    {% endif %}
+  </section>
+</body>
+</html>

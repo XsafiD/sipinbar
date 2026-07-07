@@ -1,8 +1,57 @@
 # ============================================================
-# .gitignore — Project Tugas Besar OOP
+# .gitignore — Project Tugas Besar OOP (SIPINBAR)
 # ============================================================
 
 # Dokumen & folder project SIPINBAR — dikelola terpisah,
 # tidak masuk repository ini
 *-sipinbar.md
 *-sipinbar/
+Instruksi\ Pengerjaan\ Project.pdf
+
+# ── Python ──────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+
+# ── Virtual Environment ────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Environment & secrets ──────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Database SQLite ────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+database/*.sqlite*
+database/backup/
+
+# ── Uploads (runtime generated) ────────────────────────────
+static/img/*
+!static/img/.gitkeep
+
+# ── Testing / coverage ─────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ── Editor / IDE ───────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store

@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Daftar Warga — SIPINBAR</title>
+  <!--
+    STUB template (M2 §3.1) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-11 (UI Spec SCR-12) dengan layout
+    base.html + komponen table/badge/pagination.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f3f4f6; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .badge.aktif { background: #dcfce7; color: #15803d; }
+    .badge.menunggu { background: #fef3c7; color: #b45309; }
+    .badge.ditolak, .badge.diblokir { background: #fee2e2; color: #b91c1c; }
+    a.button { display: inline-block; padding: 4px 10px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Daftar Warga</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form method="get" style="margin: 16px 0">
+    <select name="status">
+      <option value="">Semua status</option>
+      <option value="menunggu" {% if status_filter == 'menunggu' %}selected{% endif %}>Menunggu</option>
+      <option value="aktif"    {% if status_filter == 'aktif' %}selected{% endif %}>Aktif</option>
+      <option value="ditolak"  {% if status_filter == 'ditolak' %}selected{% endif %}>Ditolak</option>
+      <option value="diblokir" {% if status_filter == 'diblokir' %}selected{% endif %}>Diblokir</option>
+    </select>
+    <button type="submit">Filter</button>
+  </form>
+
+  {% if warga_list %}
+    <table>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>NIK</th>
+          <th>RT/RW</th>
+          <th>Telepon</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for w in warga_list %}
+        <tr>
+          <td>{{ w.nama_lengkap }}</td>
+          <td>{{ w.nik }}</td>
+          <td>{{ w.rt_rw }}</td>
+          <td>{{ w.telepon }}</td>
+          <td><span class="badge {{ w.status }}">{{ w.status }}</span></td>
+          <td><a class="button" href="{{ url_for('admin_warga.detail', warga_id=w.id) }}">Detail</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p><em>Belum ada warga dengan filter ini.</em></p>
+  {% endif %}
+</body>
+</html>
