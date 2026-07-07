@@ -17,9 +17,9 @@ statistik yang lebih kaya di M4.
 """
 import csv
 import io
-from datetime import date, datetime
+from datetime import date
 
-from models import db
+from models import db, utcnow
 from models.base import LaporanBase
 
 
@@ -79,7 +79,7 @@ class LaporanPeminjaman(LaporanBase):
                 "distribusi_status": count_by_status,
             },
             "metadata": {
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": utcnow().isoformat(),
                 "filter": {
                     "tanggal_mulai": tanggal_mulai.isoformat() if tanggal_mulai else None,
                     "tanggal_selesai": (
@@ -153,7 +153,7 @@ class LaporanInventaris(LaporanBase):
                 "distribusi_kondisi": dist_kondisi,
             },
             "metadata": {
-                "generated_at": datetime.utcnow().isoformat(),
+                "generated_at": utcnow().isoformat(),
                 "filter": {"include_deleted": include_deleted},
             },
         }

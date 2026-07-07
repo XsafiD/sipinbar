@@ -8,11 +8,9 @@ Pilar OOP:
   - **Encapsulation**: password disimpan sebagai `password_hash`
     (private), akses melalui method `set_password()` & `check_password()`.
 """
-from datetime import datetime
-
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models import db, generate_uuid
+from models import db, generate_uuid, utcnow
 
 
 class Admin(db.Model):
@@ -33,11 +31,11 @@ class Admin(db.Model):
     is_aktif = db.Column(db.Boolean, nullable=False, default=True)
 
     # ── Audit Trail ───────────────────────────────────────────
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
     last_login_at = db.Column(db.DateTime)
@@ -67,7 +65,7 @@ class Admin(db.Model):
     # ── Utility ───────────────────────────────────────────────
     def update_last_login(self) -> None:
         """Catat timestamp login terakhir (dipanggil saat login berhasil)."""
-        self.last_login_at = datetime.utcnow()
+        self.last_login_at = utcnow()
 
     def to_dict(self) -> dict:
         """Serialisasi ke dict (tanpa password_hash)."""

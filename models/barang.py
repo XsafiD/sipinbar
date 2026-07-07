@@ -14,9 +14,7 @@ Pilar OOP (terkonsentrasi di file ini):
     Caller code tidak perlu tahu kategori apa — cukup panggil `.hitung_denda()`.
   - **Encapsulation**: `set_kondisi()` & `set_status()` memvalidasi input.
 """
-from datetime import datetime
-
-from models import db, generate_uuid
+from models import db, generate_uuid, utcnow
 from models.base import BarangBase
 
 # ── Konstanta Enum (mengacu arsitektur-db §8) ─────────────────
@@ -34,11 +32,11 @@ class Kategori(db.Model):
     tarif_denda_per_hari = db.Column(db.Integer, nullable=False)  # Rupiah
     deskripsi = db.Column(db.Text, nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
 
@@ -91,11 +89,11 @@ class Barang(db.Model, BarangBase):
     deskripsi = db.Column(db.Text, nullable=True)
     foto_path = db.Column(db.String(255), nullable=True)
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
     # Soft delete: NULL = aktif; diisi timestamp = "dihapus"
@@ -130,7 +128,7 @@ class Barang(db.Model, BarangBase):
 
     def soft_delete(self) -> None:
         """Tandai barang sebagai dihapus (tidak benar-benar dihapus)."""
-        self.deleted_at = datetime.utcnow()
+        self.deleted_at = utcnow()
         self.status = "dihapus"
 
     @property

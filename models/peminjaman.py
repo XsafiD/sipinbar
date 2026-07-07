@@ -18,9 +18,9 @@ Pilar OOP:
   - **Polymorphism**: `hitung_denda()` mendelegasikan per item barang
     ke masing-masing `Barang.hitung_denda()` (yang berbeda per kategori).
 """
-from datetime import date, datetime
+from datetime import date
 
-from models import db, generate_uuid
+from models import db, generate_uuid, utcnow
 
 # ── Konstanta Enum (mengacu arsitektur-db §8.4 & §8.5) ────────
 STATUS_PEMINJAMAN = (
@@ -70,11 +70,11 @@ class Peminjaman(db.Model):
     total_denda_rupiah = db.Column(db.Integer, nullable=False, default=0)
 
     # ── Audit Trail ───────────────────────────────────────────
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
     approved_at = db.Column(db.DateTime, nullable=True)
@@ -125,7 +125,7 @@ class Peminjaman(db.Model):
             )
         self.status = "disetujui"
         self.approved_by_admin_id = admin_id
-        self.approved_at = datetime.utcnow()
+        self.approved_at = utcnow()
 
     def tolak(self, admin_id: str, alasan: str) -> None:
         """Tolak peminjaman. Transisi: diajukan → ditolak (final)."""
@@ -137,7 +137,7 @@ class Peminjaman(db.Model):
             raise ValueError("Alasan penolakan wajib diisi")
         self.status = "ditolak"
         self.approved_by_admin_id = admin_id
-        self.approved_at = datetime.utcnow()
+        self.approved_at = utcnow()
         self.alasan_penolakan = alasan.strip()
 
     def mulai_pinjam(self) -> None:
@@ -269,11 +269,11 @@ class DetailPeminjaman(db.Model):
         db.String(20), nullable=True
     )  # diisi saat pengembalian
 
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
 

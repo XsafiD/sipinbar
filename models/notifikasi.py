@@ -11,9 +11,7 @@ Pilar OOP:
     ABC untuk kanal in-app. Kelas turunan lain (mis. NotifikasiEmail,
     NotifikasiWhatsApp) bisa ditambah tanpa mengubah caller.
 """
-from datetime import datetime
-
-from models import db, generate_uuid
+from models import db, generate_uuid, utcnow
 from models.base import NotifikasiBase
 
 # ── Konstanta Enum (arsitektur-db §8.6) ───────────────────────
@@ -56,7 +54,7 @@ class Notifikasi(db.Model):
     dibaca_at = db.Column(db.DateTime, nullable=True)
 
     # ── Audit ─────────────────────────────────────────────────
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
     __table_args__ = (
         db.Index(
@@ -72,7 +70,7 @@ class Notifikasi(db.Model):
         """Tandai notifikasi sebagai sudah dibaca (idempoten)."""
         if not self.is_dibaca:
             self.is_dibaca = True
-            self.dibaca_at = datetime.utcnow()
+            self.dibaca_at = utcnow()
 
     def get_ikon(self) -> str:
         """Ikon UI yang sesuai dengan tipe notifikasi."""

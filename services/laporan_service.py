@@ -19,10 +19,10 @@ Pilar OOP yang terlihat:
 
 Refs: SRS §4.5, PRD FR-06, arsitektur-db §5.7, TODO T-LAP-02
 """
-from datetime import date, datetime
+from datetime import date
 from typing import Optional
 
-from models import db
+from models import db, utcnow
 from models.barang import Barang
 from models.laporan import LaporanInventaris, LaporanPeminjaman
 from models.peminjaman import Peminjaman, STATUS_PEMINJAMAN
@@ -157,7 +157,7 @@ class LaporanService:
             "peminjaman_terlambat": peminjaman_terlambat,
             "warga_terdaftar": warga_terdaftar,
             "warga_aktif": warga_aktif,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": utcnow().isoformat(),
         }
 
     # ── Statistik per Warga (untuk dashboard warga) ───────────
@@ -183,5 +183,5 @@ class LaporanService:
             "peminjaman_aktif": aktif,
             "peminjaman_riwayat": riwayat,
             "peminjaman_terlambat": terlambat,
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": utcnow().isoformat(),
         }

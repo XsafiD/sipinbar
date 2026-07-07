@@ -211,7 +211,7 @@ class TestHappyPathE2E:
         # 1. Register warga (self-service)
         _register_warga(anon_client)
         wid = _get_warga_id()
-        assert Warga.query.get(wid).status == "menunggu"
+        assert db.session.get(Warga, wid).status == "menunggu"
 
         # 2. Admin verifikasi → status 'aktif' + password ter-set
         admin_client.post(
@@ -598,7 +598,7 @@ class TestFunctionalRequirementsChecklist:
         # FR-01.6: register warga
         _register_warga(anon_client)
         wid = _get_warga_id()
-        assert Warga.query.get(wid).status == "menunggu"
+        assert db.session.get(Warga, wid).status == "menunggu"
 
         # FR-01.7: admin verifikasi
         admin_client.post(

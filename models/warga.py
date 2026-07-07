@@ -9,11 +9,9 @@ Pilar OOP:
     `blokir()`, `aktifkan()`) — tidak boleh di-set langsung agar
     transisi state terkontrol (mengacu PRD §8.4 analog untuk warga).
 """
-from datetime import datetime
-
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from models import db, generate_uuid
+from models import db, generate_uuid, utcnow
 
 
 class Warga(db.Model):
@@ -41,11 +39,11 @@ class Warga(db.Model):
     alasan_penolakan = db.Column(db.Text, nullable=True)
 
     # ── Audit Trail ───────────────────────────────────────────
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False,
     )
     verified_at = db.Column(db.DateTime, nullable=True)
@@ -82,7 +80,7 @@ class Warga(db.Model):
             )
         self.set_password(password_plain)
         self.status = "aktif"
-        self.verified_at = datetime.utcnow()
+        self.verified_at = utcnow()
         self.alasan_penolakan = None
 
     def tolak(self, alasan: str) -> None:

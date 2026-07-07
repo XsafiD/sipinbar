@@ -17,6 +17,7 @@ Pola impor (catatan untuk developer lain):
       from models import db, generate_uuid
 """
 import uuid
+from datetime import datetime, timezone
 
 from flask_sqlalchemy import SQLAlchemy
 
@@ -27,6 +28,24 @@ db: SQLAlchemy = SQLAlchemy()
 def generate_uuid() -> str:
     """Generate UUID v4 string (36 karakter) untuk Primary Key."""
     return str(uuid.uuid4())
+
+
+def utcnow() -> datetime:
+    """Return current UTC datetime sebagai **naive** datetime.
+
+    Drop-in replacement untuk ``datetime.utcnow()`` yang deprecated sejak
+    Python 3.12. Mengembalikan datetime naive (tanpa tzinfo) agar konsisten
+    dengan kolom ``db.DateTime`` SQLAlchemy yang menyimpan naive datetime
+    di SQLite.
+
+    **Penting untuk anti-spam notifikasi**: semua ``created_at`` memakai
+    UTC via helper ini. Filter anti-spam di ``NotifikasiService`` juga
+    wajib memakai ``utcnow().date()`` (bukan ``date.today()`` yang local)
+    agar perbandingan calendar-day konsisten — mismatch UTC vs local
+    adalah root cause bug T-INT-07 (anti-spam gagal di rentang 00:00–07:00
+    UTC+N).
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 # ── Register semua model ke SQLAlchemy.metadata ───────────────

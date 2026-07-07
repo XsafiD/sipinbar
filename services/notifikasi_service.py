@@ -26,7 +26,7 @@ from typing import List, Optional
 
 from sqlalchemy import and_
 
-from models import db
+from models import db, utcnow
 from models.notifikasi import Notifikasi, NotifikasiInApp, TIPE_NOTIFIKASI
 from models.peminjaman import Peminjaman
 
@@ -284,9 +284,17 @@ class NotifikasiService:
 
         Anti-spam agar scheduler yang berjalan berkali-kali sehari tidak
         mengirim pengingat ganda.
+
+        **Penting**: window calendar-day dihitung dalam **UTC** (bukan local
+        time) agar konsisten dengan ``Notifikasi.created_at`` yang disimpan
+        sebagai UTC via ``utcnow()``. Bug T-INT-07: sebelumnya memakai
+        ``date.today()`` (local) yang mismatch dengan ``created_at`` (UTC)
+        saat berjalan di rentang 00:00–07:00 UTC+N, menyebabkan anti-spam
+        gagal dan pengingat dikirim ganda.
         """
-        start_of_day = datetime.combine(date.today(), datetime.min.time())
-        end_of_day = datetime.combine(date.today(), datetime.max.time())
+        today_utc = utcnow().date()
+        start_of_day = datetime.combine(today_utc, datetime.min.time())
+        end_of_day = datetime.combine(today_utc, datetime.max.time())
         existing = (
             Notifikasi.query
             .filter(Notifikasi.peminjaman_id == peminjaman_id)
