@@ -62,7 +62,7 @@ def create_app(config_class: type = Config) -> Flask:
         return jsonify(
             status="ok",
             app="sipinbar",
-            version="0.1.0",
+            version="0.3.0",
         )
 
     # ── Error Handlers ────────────────────────────────────────
