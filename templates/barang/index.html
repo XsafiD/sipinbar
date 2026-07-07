@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Katalog Barang — SIPINBAR</title>
+  <!--
+    STUB template (M2 §3.2) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-04 (UI Spec SCR-04) dengan layout
+    base.html + komponen card/table/badge/pagination.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    form.filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
+    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+    th { background: #f3f4f6; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .badge.tersedia { background: #dcfce7; color: #15803d; }
+    .badge.dipinjam { background: #dbeafe; color: #1d4ed8; }
+    .badge.perbaikan { background: #fef3c7; color: #b45309; }
+    .badge.rusak { background: #fee2e2; color: #b91c1c; }
+    a.button { display: inline-block; padding: 4px 10px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; }
+    a.button.tambah { background: #16a34a; }
+  </style>
+</head>
+<body>
+  <h1>Katalog Barang</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <form class="filter" method="get">
+    <input type="text" name="q" placeholder="Cari nama barang..." value="{{ q_filter }}">
+    <select name="kategori">
+      <option value="">Semua kategori</option>
+      {% for k in kategori_list %}
+        <option value="{{ k.id }}" {% if kategori_filter == k.id %}selected{% endif %}>{{ k.nama }}</option>
+      {% endfor %}
+    </select>
+    <select name="status">
+      <option value="">Semua status</option>
+      <option value="tersedia"  {% if status_filter == 'tersedia'  %}selected{% endif %}>Tersedia</option>
+      <option value="dipinjam"  {% if status_filter == 'dipinjam'  %}selected{% endif %}>Dipinjam</option>
+      <option value="perbaikan" {% if status_filter == 'perbaikan' %}selected{% endif %}>Perbaikan</option>
+      <option value="rusak"     {% if status_filter == 'rusak'     %}selected{% endif %}>Rusak</option>
+    </select>
+    <button type="submit">Filter</button>
+    <a class="button tambah" href="{{ url_for('barang.tambah') }}">+ Tambah Barang</a>
+  </form>
+
+  {% if barang_list %}
+    <table>
+      <thead>
+        <tr>
+          <th>Nama</th>
+          <th>Kategori</th>
+          <th>Jumlah</th>
+          <th>Kondisi</th>
+          <th>Status</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for b in barang_list %}
+        <tr>
+          <td>{{ b.nama }}</td>
+          <td>{{ b.kategori.nama }}</td>
+          <td>{{ b.jumlah_unit }}</td>
+          <td>{{ b.kondisi }}</td>
+          <td><span class="badge {{ b.status }}">{{ b.status }}</span></td>
+          <td><a class="button" href="{{ url_for('barang.detail', barang_id=b.id) }}">Detail</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p><em>Belum ada barang dengan filter ini.</em></p>
+  {% endif %}
+</body>
+</html>

@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <title>Detail Barang — SIPINBAR</title>
+  <!--
+    STUB template (M2 §3.2) — versi minimal fungsional.
+    Akan digantikan oleh T-UI-05 (UI Spec SCR-05) dengan layout
+    base.html + komponen card/badge/modal.
+  -->
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
+    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
+    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
+    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
+    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
+    .info-grid { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin-top: 16px; }
+    .info-grid dt { font-weight: bold; color: #374151; }
+    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
+    .badge.tersedia { background: #dcfce7; color: #15803d; }
+    .badge.dipinjam { background: #dbeafe; color: #1d4ed8; }
+    .badge.perbaikan { background: #fef3c7; color: #b45309; }
+    .badge.rusak { background: #fee2e2; color: #b91c1c; }
+    .badge.dihapus { background: #e5e7eb; color: #6b7280; }
+    .actions { margin-top: 20px; display: flex; gap: 8px; }
+    a.button, button.button { display: inline-block; padding: 6px 12px; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; font-size: 14px; }
+    a.edit { background: #2563eb; }
+    form.dihapus-inline { display: inline; }
+    button.hapus { background: #dc2626; }
+    a.kembali { background: #6b7280; }
+  </style>
+</head>
+<body>
+  <h1>{{ barang.nama }}</h1>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="flash {{ category }}">{{ message }}</div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <dl class="info-grid">
+    <dt>Kategori</dt>
+    <dd>{{ barang.kategori.nama }} (tarif denda Rp {{ barang.kategori.tarif_denda_per_hari }}/hari)</dd>
+    <dt>Jumlah Unit</dt>
+    <dd>{{ barang.jumlah_unit }}</dd>
+    <dt>Kondisi</dt>
+    <dd>{{ barang.kondisi }}</dd>
+    <dt>Status</dt>
+    <dd><span class="badge {{ barang.status }}">{{ barang.status }}</span></dd>
+    <dt>Deskripsi</dt>
+    <dd>{{ barang.deskripsi or '-' }}</dd>
+    {% if barang.foto_path %}
+    <dt>Foto</dt>
+    <dd><img src="{{ url_for('static', filename=barang.foto_path) }}" alt="Foto {{ barang.nama }}" style="max-width: 240px;"></dd>
+    {% endif %}
+  </dl>
+
+  <div class="actions">
+    <a class="button edit" href="{{ url_for('barang.edit', barang_id=barang.id) }}">Edit</a>
+    <form class="dihapus-inline" method="post" action="{{ url_for('barang.hapus', barang_id=barang.id) }}">
+      {{ confirm_form.csrf_token }}
+      <button class="button hapus" type="submit" onclick="return confirm('Hapus barang ini? (soft delete)')">Hapus</button>
+    </form>
+    <a class="button kembali" href="{{ url_for('barang.index') }}">Kembali</a>
+  </div>
+</body>
+</html>
