@@ -1,94 +1,161 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Laporan Inventaris — SIPINBAR</title>
-  <!--
-    STUB template (M3 §4.2) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-15 (UI Spec SCR-16) dengan layout
-    base.html + komponen table/card.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
-    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
-    form.filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-    th { background: #f3f4f6; }
-    .summary { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
-    .summary .card { padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .summary .label { font-size: 12px; color: #6b7280; text-transform: uppercase; }
-    .summary .value { font-size: 20px; font-weight: bold; }
-    a.button { display: inline-block; padding: 4px 10px; background: #16a34a; color: white; text-decoration: none; border-radius: 4px; }
-    a.back { background: #6b7280; }
-  </style>
-</head>
-<body>
-  <h1>Laporan Inventaris</h1>
+{# templates/laporan/inventaris.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Laporan Inventaris (SCR-16). Sesuai UI Spec SCR-16 & mockup
+  `laporan_inventaris_sipinbar.html`.
 
-  <form class="filter" method="get">
-    <label>
-      <input type="checkbox" name="include_deleted" value="true" {% if include_deleted %}checked{% endif %}>
-      Tampilkan barang yang sudah dihapus
+  Fitur:
+    - Tabel barang + summary (total jenis, total unit, distribusi kondisi/status)
+    - Opsi include deleted (toggle)
+    - Tombol export CSV
+
+  Context dari controller:
+    - data:            dict {rows, summary, metadata}
+    - include_deleted: bool
+
+  Refs: TODO T-UI-15, UI Spec SCR-16, mockup laporan_inventaris_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/badge.html" import render_badge %}
+{% from "components/card.html" import render_card, render_stat_card %}
+
+{% block title %}Laporan Inventaris — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumb #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('laporan.index') }}" class="hover:text-brand-600">Pusat Laporan</a>
+  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  <span class="text-gray-700">Laporan Inventaris</span>
+</nav>
+
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Laporan Inventaris</h1>
+    <p class="text-sm text-gray-500 mt-1">Snapshot inventaris barang dengan distribusi status & kondisi.</p>
+  </div>
+  <a href="{{ url_for('laporan.export', type='inventaris', format='csv', include_deleted=('true' if include_deleted else 'false')) }}"
+     class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm no-print">
+    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+    </svg>
+    Export CSV
+  </a>
+</div>
+
+{# ── Filter ─────────────────────────────────────────────────── #}
+<form method="get" action="{{ url_for('laporan.inventaris') }}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 no-print">
+  <div class="flex items-center justify-between">
+    <label class="inline-flex items-center cursor-pointer">
+      <input type="checkbox" name="include_deleted" value="true" {{ 'checked' if include_deleted else '' }}
+             class="w-4 h-4 text-brand-600 border-gray-300 rounded focus:ring-brand-500">
+      <span class="ml-2 text-sm text-gray-700">Tampilkan barang yang sudah dihapus (soft delete)</span>
     </label>
-    <button type="submit">Filter</button>
-    <a class="button" href="{{ url_for('laporan.export', type='inventaris', format='csv', include_deleted=('true' if include_deleted else 'false')) }}">Export CSV</a>
-    <a class="button back" href="{{ url_for('laporan.index') }}">Kembali</a>
-  </form>
+    <button type="submit" class="px-4 py-1.5 bg-brand-600 text-white rounded-md hover:bg-brand-700 text-sm font-medium transition-colors">
+      Terapkan
+    </button>
+  </div>
+</form>
 
-  {% set summary = data.summary or {} %}
-  {% if summary %}
-    <div class="summary">
-      <div class="card">
-        <div class="label">Total Jenis Barang</div>
-        <div class="value">{{ summary.total_jenis_barang }}</div>
+{# ── Summary #}
+{% set summary = data.summary or {} %}
+{% if summary %}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  {{ render_stat_card('Total Jenis Barang', summary.total_jenis_barang or 0, color='blue',
+    icon_path='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4') }}
+  {{ render_stat_card('Total Unit', summary.total_unit or 0, color='indigo',
+    icon_path='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10') }}
+  {{ render_stat_card('Status Berbeda', (summary.distribusi_status or {}) | length, color='emerald',
+    icon_path='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') }}
+</div>
+
+{# Distribusi kondisi & status #}
+{% set dist_kondisi = summary.distribusi_kondisi or {} %}
+{% set dist_status = summary.distribusi_status or {} %}
+{% if dist_kondisi or dist_status %}
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+  {% if dist_status %}
+  {% call render_card(title='Distribusi Status') %}
+    <div class="flex flex-wrap gap-2">
+      {% for s, count in dist_status.items() %}
+      <div class="inline-flex items-center space-x-2 bg-gray-50 rounded-lg px-3 py-2">
+        {{ render_badge(s) }}
+        <span class="text-sm font-semibold text-gray-700">{{ count }}</span>
       </div>
-      <div class="card">
-        <div class="label">Total Unit</div>
-        <div class="value">{{ summary.total_unit }}</div>
-      </div>
+      {% endfor %}
     </div>
+  {% endcall %}
   {% endif %}
+  {% if dist_kondisi %}
+  {% call render_card(title='Distribusi Kondisi') %}
+    <div class="flex flex-wrap gap-2">
+      {% for k, count in dist_kondisi.items() %}
+      <div class="inline-flex items-center space-x-2 bg-gray-50 rounded-lg px-3 py-2">
+        {% if k == 'baik' %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Baik</span>
+        {% elif k == 'perlu_perbaikan' %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Perlu Perbaikan</span>
+        {% elif k == 'rusak' %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Rusak</span>
+        {% else %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ k | title }}</span>
+        {% endif %}
+        <span class="text-sm font-semibold text-gray-700">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endif %}
+{% endif %}
 
-  {% if data.rows %}
-    <table>
+{# ── Tabel barang ───────────────────────────────────────────── #}
+{% call render_card(title='Daftar Barang') %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
       <thead>
-        <tr>
-          <th>Nama</th>
-          <th>Kategori</th>
-          <th>Jumlah Unit</th>
-          <th>Kondisi</th>
-          <th>Status</th>
-          <th>Tarif Denda/Hari</th>
+        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+          <th class="px-4 py-3 font-medium">Nama</th>
+          <th class="px-4 py-3 font-medium">Kategori</th>
+          <th class="px-4 py-3 font-medium text-center">Jumlah Unit</th>
+          <th class="px-4 py-3 font-medium">Kondisi</th>
+          <th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium text-right">Tarif Denda/Hari</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
         {% for row in data.rows %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3 font-medium text-gray-800">{{ row.nama }}</td>
+          <td class="px-4 py-3 text-xs text-gray-600">{{ row.kategori or '-' }}</td>
+          <td class="px-4 py-3 text-center">{{ row.jumlah_unit }}</td>
+          <td class="px-4 py-3 capitalize text-xs">{{ row.kondisi | replace('_', ' ') }}</td>
+          <td class="px-4 py-3">{{ render_badge(row.status) }}</td>
+          <td class="px-4 py-3 text-right text-xs">
+            Rp {{ "{:,.0f}".format(row.tarif_denda_per_hari or 0) }}
+          </td>
+        </tr>
+        {% else %}
         <tr>
-          <td>{{ row.nama }}</td>
-          <td>{{ row.kategori }}</td>
-          <td>{{ row.jumlah_unit }}</td>
-          <td>{{ row.kondisi }}</td>
-          <td>{{ row.status }}</td>
-          <td>Rp {{ "{:,}".format(row.tarif_denda_per_hari or 0) }}</td>
+          <td colspan="6" class="px-6 py-12 text-center text-gray-400">
+            <div class="flex flex-col items-center">
+              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+              </svg>
+              <p class="text-sm">Tidak ada data barang.</p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-  {% else %}
-    <p><em>Tidak ada data barang.</em></p>
+  </div>
+  {% if data.rows %}
+  <div class="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
+    Total: {{ data.rows | length }} jenis barang.
+  </div>
   {% endif %}
-</body>
-</html>
+{% endcall %}
+{% endblock %}

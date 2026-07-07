@@ -1,71 +1,192 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Detail Barang — SIPINBAR</title>
-  <!--
-    STUB template (M2 §3.2) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-05 (UI Spec SCR-05) dengan layout
-    base.html + komponen card/badge/modal.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
-    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
-    .info-grid { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin-top: 16px; }
-    .info-grid dt { font-weight: bold; color: #374151; }
-    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-    .badge.tersedia { background: #dcfce7; color: #15803d; }
-    .badge.dipinjam { background: #dbeafe; color: #1d4ed8; }
-    .badge.perbaikan { background: #fef3c7; color: #b45309; }
-    .badge.rusak { background: #fee2e2; color: #b91c1c; }
-    .badge.dihapus { background: #e5e7eb; color: #6b7280; }
-    .actions { margin-top: 20px; display: flex; gap: 8px; }
-    a.button, button.button { display: inline-block; padding: 6px 12px; color: white; text-decoration: none; border-radius: 4px; border: none; cursor: pointer; font-size: 14px; }
-    a.edit { background: #2563eb; }
-    form.dihapus-inline { display: inline; }
-    button.hapus { background: #dc2626; }
-    a.kembali { background: #6b7280; }
-  </style>
-</head>
-<body>
-  <h1>{{ barang.nama }}</h1>
+{# templates/barang/detail.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Detail Barang (SCR-05). Sesuai UI Spec SCR-05 & mockup
+  `detail_barang_sipinbar.html`.
 
-  <dl class="info-grid">
-    <dt>Kategori</dt>
-    <dd>{{ barang.kategori.nama }} (tarif denda Rp {{ barang.kategori.tarif_denda_per_hari }}/hari)</dd>
-    <dt>Jumlah Unit</dt>
-    <dd>{{ barang.jumlah_unit }}</dd>
-    <dt>Kondisi</dt>
-    <dd>{{ barang.kondisi }}</dd>
-    <dt>Status</dt>
-    <dd><span class="badge {{ barang.status }}">{{ barang.status }}</span></dd>
-    <dt>Deskripsi</dt>
-    <dd>{{ barang.deskripsi or '-' }}</dd>
-    {% if barang.foto_path %}
-    <dt>Foto</dt>
-    <dd><img src="{{ url_for('static', filename=barang.foto_path) }}" alt="Foto {{ barang.nama }}" style="max-width: 240px;"></dd>
-    {% endif %}
-  </dl>
+  Fitur:
+    - Foto besar (atau placeholder), info lengkap, tarif denda per hari
+    - Tombol "Ajukan Peminjaman" (warga aktif + barang tersedia)
+    - Tombol "Edit"/"Hapus" (admin, hapus pakai modal konfirmasi)
 
-  <div class="actions">
-    <a class="button edit" href="{{ url_for('barang.edit', barang_id=barang.id) }}">Edit</a>
-    <form class="dihapus-inline" method="post" action="{{ url_for('barang.hapus', barang_id=barang.id) }}">
-      {{ confirm_form.csrf_token }}
-      <button class="button hapus" type="submit" onclick="return confirm('Hapus barang ini? (soft delete)')">Hapus</button>
-    </form>
-    <a class="button kembali" href="{{ url_for('barang.index') }}">Kembali</a>
+  Tombol disable sesuai role & status:
+    - Warga: hanya lihat + ajukan (jika tersedia & warga aktif)
+    - Admin: edit, hapus (soft delete)
+
+  Context dari controller:
+    - barang:        Barang
+    - confirm_form:  ConfirmForm (CSRF untuk hapus)
+
+  Refs: TODO T-UI-05, UI Spec SCR-05, mockup detail_barang_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/badge.html" import render_badge %}
+{% from "components/card.html" import render_card %}
+{% from "components/modal.html" import render_modal, render_modal_trigger %}
+
+{% block title %}{{ barang.nama }} — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumb #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('barang.index') }}" class="hover:text-brand-600">Katalog Barang</a>
+  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  <span class="text-gray-700 truncate">{{ barang.nama }}</span>
+</nav>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  {# Kolom kiri: foto + aksi #}
+  <div class="lg:col-span-1">
+    {% call render_card() %}
+      <div class="aspect-w-4 aspect-h-3 bg-gray-100 rounded-lg overflow-hidden mb-4">
+        {% if barang.foto_path %}
+        <img src="{{ url_for('static', filename=barang.foto_path) }}" alt="{{ barang.nama }}"
+             class="w-full h-56 object-cover">
+        {% else %}
+        <div class="w-full h-56 flex items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
+          <svg class="w-20 h-20 text-brand-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+          </svg>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2 mb-4">
+        {{ render_badge(barang.status) }}
+        {% if barang.kondisi == 'baik' %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Kondisi: Baik</span>
+        {% elif barang.kondisi == 'perlu_perbaikan' %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Kondisi: Perlu Perbaikan</span>
+        {% elif barang.kondisi == 'rusak' %}
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Kondisi: Rusak</span>
+        {% endif %}
+      </div>
+
+      {# Aksi #}
+      <div class="space-y-2">
+        {% if session.get('role') == 'warga' %}
+          {% if barang.status == 'tersedia' %}
+          <a href="{{ url_for('peminjaman.ajukan') }}?barang={{ barang.id }}"
+             class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Ajukan Peminjaman
+          </a>
+          {% else %}
+          <button type="button" disabled
+                  class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-gray-200 text-gray-500 rounded-lg cursor-not-allowed text-sm font-medium">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+            </svg>
+            Barang tidak tersedia
+          </button>
+          {% endif %}
+        {% elif session.get('role') == 'admin' %}
+        <a href="{{ url_for('barang.edit', barang_id=barang.id) }}"
+           class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+          </svg>
+          Edit Barang
+        </a>
+        {{ render_modal_trigger('modal-hapus-barang', 'Hapus Barang', variant='danger',
+            icon_path='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16') }}
+        {% endif %}
+
+        <a href="{{ url_for('barang.index') }}" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+          Kembali ke Katalog
+        </a>
+      </div>
+    {% endcall %}
   </div>
-</body>
-</html>
+
+  {# Kolom kanan: info lengkap #}
+  <div class="lg:col-span-2 space-y-6">
+    {% call render_card() %}
+      <div class="mb-4">
+        <h1 class="text-2xl font-bold text-gray-900">{{ barang.nama }}</h1>
+        <p class="text-sm text-gray-500 mt-1">ID: <code class="font-mono text-xs">{{ barang.id }}</code></p>
+      </div>
+
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Kategori</dt>
+          <dd class="text-sm text-gray-800 mt-1">{{ barang.kategori.nama if barang.kategori else '-' }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Tarif Denda</dt>
+          <dd class="text-sm text-gray-800 mt-1">
+            <span class="font-semibold text-red-600">Rp {{ "{:,.0f}".format(barang.kategori.tarif_denda_per_hari) if barang.kategori else 0 }}</span>
+            <span class="text-gray-500">/ hari terlambat</span>
+          </dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Jumlah Unit</dt>
+          <dd class="text-sm text-gray-800 mt-1">{{ barang.jumlah_unit }} unit</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Kondisi</dt>
+          <dd class="text-sm text-gray-800 mt-1 capitalize">{{ barang.kondisi.replace('_', ' ') }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</dt>
+          <dd class="mt-1">{{ render_badge(barang.status) }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Terdaftar</dt>
+          <dd class="text-sm text-gray-800 mt-1">{{ barang.created_at.strftime('%d %b %Y') if barang.created_at else '-' }}</dd>
+        </div>
+      </dl>
+
+      {% if barang.deskripsi %}
+      <div class="mt-6 pt-6 border-t border-gray-100">
+        <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">Deskripsi</dt>
+        <dd class="text-sm text-gray-700 leading-relaxed whitespace-pre-line">{{ barang.deskripsi }}</dd>
+      </div>
+      {% endif %}
+    {% endcall %}
+
+    {# Info denda — ringkasan #}
+    {% call render_card(title='Informasi Denda Keterlambatan') %}
+      <div class="flex items-start space-x-3">
+        <svg class="w-6 h-6 text-yellow-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+        <div class="text-sm text-gray-700">
+          <p>
+            Keterlambatan pengembalian dikenakan denda sebesar
+            <strong class="text-red-600">Rp {{ "{:,.0f}".format(barang.kategori.tarif_denda_per_hari) if barang.kategori else 0 }}</strong>
+            per unit per hari.
+          </p>
+          <p class="text-xs text-gray-500 mt-1">
+            Denda dihitung otomatis berdasarkan selisih hari dari tanggal jatuh tempo.
+          </p>
+        </div>
+      </div>
+    {% endcall %}
+  </div>
+</div>
+
+{# Modal hapus (admin only) #}
+{% if session.get('role') == 'admin' %}
+{% call render_modal('modal-hapus-barang', 'Konfirmasi Hapus Barang', variant='danger') %}
+  <form id="modal-hapus-barang-form" method="post" action="{{ url_for('barang.hapus', barang_id=barang.id) }}">
+    {{ confirm_form.csrf_token }}
+  </form>
+  <div class="flex items-start space-x-3">
+    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+      <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+      </svg>
+    </div>
+    <div class="text-sm text-gray-700">
+      <p>Apakah Anda yakin ingin menghapus barang <strong>{{ barang.nama }}</strong>?</p>
+      <p class="text-xs text-gray-500 mt-1">Barang akan di-soft-delete (tidak benar-benar dihapus dari database).</p>
+    </div>
+  </div>
+{% endcall %}
+{% endif %}
+{% endblock %}

@@ -1,74 +1,100 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Pusat Laporan — SIPINBAR</title>
-  <!--
-    STUB template (M3 §4.2) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-13 (UI Spec SCR-14) dengan layout
-    base.html + komponen card/table.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
-    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin: 16px 0; }
-    .card { padding: 16px; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .card .label { font-size: 12px; color: #6b7280; text-transform: uppercase; }
-    .card .value { font-size: 24px; font-weight: bold; margin-top: 4px; }
-    .menu { margin: 16px 0; }
-    .menu a { display: inline-block; padding: 8px 14px; margin-right: 8px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; }
-    .menu a.export { background: #16a34a; }
-  </style>
-</head>
-<body>
-  <h1>Pusat Laporan</h1>
+{# templates/laporan/index.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Pusat Laporan (SCR-14). Sesuai UI Spec SCR-14 & mockup
+  `pusat_laporan_sipinbar.html`.
 
-  <h2>Statistik Dashboard</h2>
-  <div class="grid">
-    <div class="card">
-      <div class="label">Total Barang</div>
-      <div class="value">{{ statistik.total_barang }}</div>
-    </div>
-    <div class="card">
-      <div class="label">Total Unit</div>
-      <div class="value">{{ statistik.total_unit_barang }}</div>
-    </div>
-    <div class="card">
-      <div class="label">Peminjaman Aktif</div>
-      <div class="value">{{ statistik.peminjaman_aktif }}</div>
-    </div>
-    <div class="card">
-      <div class="label">Terlambat</div>
-      <div class="value">{{ statistik.peminjaman_terlambat }}</div>
-    </div>
-    <div class="card">
-      <div class="label">Warga Terdaftar</div>
-      <div class="value">{{ statistik.warga_terdaftar }}</div>
-    </div>
-    <div class="card">
-      <div class="label">Warga Aktif</div>
-      <div class="value">{{ statistik.warga_aktif }}</div>
-    </div>
+  Fitur:
+    - Tab: Laporan Peminjaman | Laporan Inventaris (link, bukan tab JS)
+    - Ringkasan statistik (cards)
+    - Tombol ekspor (CSV / print)
+
+  Context dari controller:
+    - statistik: dict dari LaporanService.get_statistik_dashboard()
+
+  Refs: TODO T-UI-13, UI Spec SCR-14, mockup pusat_laporan_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/card.html" import render_card, render_stat_card %}
+
+{% block title %}Pusat Laporan — SIPINBAR{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Pusat Laporan</h1>
+  <p class="text-sm text-gray-500 mt-1">Ringkasan statistik & ekspor laporan SIPINBAR.</p>
+</div>
+
+{# ── Statistik dashboard ────────────────────────────────────── #}
+<div class="mb-6">
+  <h2 class="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-3">Statistik Dashboard</h2>
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {{ render_stat_card('Total Barang', statistik.total_barang, color='blue',
+      icon_path='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4') }}
+    {{ render_stat_card('Total Unit', statistik.total_unit_barang, color='indigo',
+      icon_path='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10') }}
+    {{ render_stat_card('Peminjaman Aktif', statistik.peminjaman_aktif, color='sky',
+      icon_path='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2') }}
+    {{ render_stat_card('Terlambat', statistik.peminjaman_terlambat, color='red',
+      icon_path='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z') }}
+    {{ render_stat_card('Warga Terdaftar', statistik.warga_terdaftar, color='purple',
+      icon_path='M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z') }}
+    {{ render_stat_card('Warga Aktif', statistik.warga_aktif, color='emerald',
+      icon_path='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') }}
   </div>
+</div>
 
-  <h2>Laporan Detail</h2>
-  <div class="menu">
-    <a href="{{ url_for('laporan.peminjaman') }}">Laporan Peminjaman</a>
-    <a href="{{ url_for('laporan.inventaris') }}">Laporan Inventaris</a>
-    <a class="export" href="{{ url_for('laporan.export', type='peminjaman', format='csv') }}">Export Peminjaman (CSV)</a>
-    <a class="export" href="{{ url_for('laporan.export', type='inventaris', format='csv') }}">Export Inventaris (CSV)</a>
-  </div>
-</body>
-</html>
+{# ── Laporan detail #}
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+  {# Laporan Peminjaman #}
+  {% call render_card(title='Laporan Peminjaman') %}
+    <p class="text-sm text-gray-600 mb-4">
+      Laporan transaksi peminjaman dengan filter periode & status. Bisa di-export ke CSV.
+    </p>
+    <div class="space-y-2">
+      <a href="{{ url_for('laporan.peminjaman') }}"
+         class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+        </svg>
+        Lihat Laporan Peminjaman
+      </a>
+      <a href="{{ url_for('laporan.export', type='peminjaman', format='csv') }}"
+         class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        Export CSV
+      </a>
+    </div>
+  {% endcall %}
+
+  {# Laporan Inventaris #}
+  {% call render_card(title='Laporan Inventaris') %}
+    <p class="text-sm text-gray-600 mb-4">
+      Snapshot inventaris barang dengan distribusi status & kondisi. Bisa di-export ke CSV.
+    </p>
+    <div class="space-y-2">
+      <a href="{{ url_for('laporan.inventaris') }}"
+         class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+        </svg>
+        Lihat Laporan Inventaris
+      </a>
+      <a href="{{ url_for('laporan.export', type='inventaris', format='csv') }}"
+         class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-50 text-green-700 border border-green-200 rounded-lg hover:bg-green-100 transition-colors text-sm font-medium">
+        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+        </svg>
+        Export CSV
+      </a>
+    </div>
+  {% endcall %}
+</div>
+
+{# ── Info generated at #}
+<div class="mt-6 text-center text-xs text-gray-400">
+  Statistik di-generate pada: {{ statistik.generated_at[:19] | replace('T', ' ') if statistik.generated_at else '-' }}
+</div>
+{% endblock %}

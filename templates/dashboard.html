@@ -5,13 +5,13 @@
     - Tabel 5 peminjaman terbaru
     - Panel notifikasi terbaru
 
-  Data: DUMMY (dari dashboard_controller). Integrasi real di M3 §4.2 (T-UI-03).
+  Data: REAL dari LaporanService + NotifikasiService (T-UI-03/T-UI-17).
 
   Role conditional:
-    - admin: lihat stat global + kolom "Peminjam" di tabel
-    - warga: lihat stat pribadi (tanpa "Warga Terdaftar" & "Peminjam")
+    - admin: lihat stat global + kolom "Peminjam" di tabel + stat warga terdaftar
+    - warga: lihat stat pribadi (peminjaman aktif, terlambat, riwayat)
 
-  Refs: TODO T-FE-14, UI Spec SCR-03, handoff §3.2
+  Refs: TODO T-FE-14 & T-UI-03/T-UI-17, UI Spec SCR-03, handoff §3.2
 #}
 {% extends "base.html" %}
 {% from "components/card.html" import render_card, render_stat_card %}
@@ -34,7 +34,8 @@
 </div>
 
 {# ── Stat cards grid ────────────────────────────────────────── #}
-{# TODO: ganti dengan data real dari LaporanService.get_statistik_dashboard() (M3 §4.2) #}
+{% if session.get('role') == 'admin' %}
+{# Admin: stat global #}
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   {{ render_stat_card('Total Barang', stats.total_barang, color='blue',
     icon_path='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4') }}
@@ -42,14 +43,26 @@
     icon_path='M5 13l4 4L19 7') }}
   {{ render_stat_card('Peminjaman Aktif', stats.peminjaman_aktif, color='sky',
     icon_path='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2') }}
-  {{ render_stat_card('Terlambat', stats.terlambat, color='red',
+  {{ render_stat_card('Terlambat', stats.peminjaman_terlambat, color='red',
     icon_path='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z') }}
 </div>
-
-{% if session.get('role') == 'admin' and stats.warga_terdaftar is defined %}
 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  {{ render_stat_card('Total Unit', stats.total_unit_barang, color='indigo',
+    icon_path='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10') }}
   {{ render_stat_card('Warga Terdaftar', stats.warga_terdaftar, color='purple',
     icon_path='M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z') }}
+  {{ render_stat_card('Warga Aktif', stats.warga_aktif, color='emerald',
+    icon_path='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') }}
+</div>
+{% else %}
+{# Warga: stat pribadi #}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  {{ render_stat_card('Peminjaman Aktif', stats.peminjaman_aktif, color='sky',
+    icon_path='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2') }}
+  {{ render_stat_card('Terlambat', stats.terlambat, color='red',
+    icon_path='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z') }}
+  {{ render_stat_card('Total Riwayat', stats.peminjaman_riwayat, color='blue',
+    icon_path='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2') }}
 </div>
 {% endif %}
 
@@ -74,7 +87,12 @@
           <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
             {% for p in recent_peminjaman %}
             <tr class="hover:bg-gray-50 transition-colors">
-              <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ p.kode }}</td>
+              <td class="px-4 py-3">
+                <a href="{{ url_for('peminjaman.detail', peminjaman_id=p.id) }}"
+                   class="font-mono text-xs text-brand-600 hover:underline">
+                  {{ p.kode }}
+                </a>
+              </td>
               {% if session.get('role') == 'admin' %}
               <td class="px-4 py-3">{{ p.peminjam }}</td>
               {% endif %}
@@ -83,8 +101,18 @@
             </tr>
             {% else %}
             <tr>
-              <td colspan="4" class="px-4 py-8 text-center text-gray-400 text-sm">
-                Belum ada peminjaman.
+              <td colspan="{% if session.get('role') == 'admin' %}4{% else %}3{% endif %}" class="px-4 py-8 text-center text-gray-400 text-sm">
+                <div class="flex flex-col items-center">
+                  <svg class="w-10 h-10 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+                  </svg>
+                  <p>Belum ada peminjaman.</p>
+                  {% if session.get('role') != 'admin' %}
+                  <a href="{{ url_for('peminjaman.ajukan') }}" class="mt-3 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors">
+                    Ajukan Peminjaman
+                  </a>
+                  {% endif %}
+                </div>
               </td>
             </tr>
             {% endfor %}
@@ -109,7 +137,7 @@
           <span class="block h-2.5 w-2.5 rounded-full {{ ts.dot }} mt-1.5 flex-shrink-0"></span>
           <div class="min-w-0 flex-1">
             <p class="text-sm font-medium text-gray-800">{{ n.judul }}</p>
-            <p class="text-xs text-gray-600 mt-0.5">{{ n.pesan }}</p>
+            <p class="text-xs text-gray-600 mt-0.5 line-clamp-2">{{ n.pesan }}</p>
             <p class="text-xs text-gray-400 mt-1">{{ n.timestamp }}</p>
           </div>
         </div>

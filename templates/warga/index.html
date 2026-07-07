@@ -1,78 +1,115 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Daftar Warga — SIPINBAR</title>
-  <!--
-    STUB template (M2 §3.1) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-11 (UI Spec SCR-12) dengan layout
-    base.html + komponen table/badge/pagination.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-    th { background: #f3f4f6; }
-    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-    .badge.aktif { background: #dcfce7; color: #15803d; }
-    .badge.menunggu { background: #fef3c7; color: #b45309; }
-    .badge.ditolak, .badge.diblokir { background: #fee2e2; color: #b91c1c; }
-    a.button { display: inline-block; padding: 4px 10px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; }
-  </style>
-</head>
-<body>
-  <h1>Daftar Warga</h1>
+{# templates/warga/index.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Daftar Warga (SCR-12). Sesuai UI Spec SCR-12 & mockup
+  `daftar_warga_sipinbar.html`.
 
-  <form method="get" style="margin: 16px 0">
-    <select name="status">
-      <option value="">Semua status</option>
-      <option value="menunggu" {% if status_filter == 'menunggu' %}selected{% endif %}>Menunggu</option>
-      <option value="aktif"    {% if status_filter == 'aktif' %}selected{% endif %}>Aktif</option>
-      <option value="ditolak"  {% if status_filter == 'ditolak' %}selected{% endif %}>Ditolak</option>
-      <option value="diblokir" {% if status_filter == 'diblokir' %}selected{% endif %}>Diblokir</option>
-    </select>
-    <button type="submit">Filter</button>
-  </form>
+  Fitur:
+    - Filter status: menunggu, aktif, ditolak, diblokir (tabs)
+    - Tabel: nama, NIK, RT/RW, telepon, status badge, aksi
+    - Aksi sesuai status (verify jika menunggu, blokir jika aktif, dll) — tombol
+      ini mengarah ke detail page (POST trigger dari sana)
 
-  {% if warga_list %}
-    <table>
+  Context dari controller:
+    - warga_list:    list[Warga]
+    - status_filter: str
+
+  Refs: TODO T-UI-11, UI Spec SCR-12, mockup daftar_warga_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/badge.html" import render_badge %}
+{% from "components/card.html" import render_card %}
+
+{% block title %}Daftar Warga — SIPINBAR{% endblock %}
+
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Daftar Warga</h1>
+  <p class="text-sm text-gray-500 mt-1">Kelola warga terdaftar & verifikasi pendaftaran baru.</p>
+</div>
+
+{# ── Filter tabs (status) ───────────────────────────────────── #}
+<div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 mb-6 overflow-x-auto">
+  <div class="flex items-center space-x-1 min-w-max">
+    <a href="{{ url_for('admin_warga.index') }}"
+       class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {{ 'bg-brand-600 text-white' if not status_filter else 'text-gray-600 hover:bg-gray-100' }}">
+      Semua
+    </a>
+    {% for s in ['menunggu', 'aktif', 'ditolak', 'diblokir'] %}
+    <a href="{{ url_for('admin_warga.index', status=s) }}"
+       class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {{ 'bg-brand-600 text-white' if status_filter == s else 'text-gray-600 hover:bg-gray-100' }}">
+      {{ s | title }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── Tabel warga ────────────────────────────────────────────── #}
+{% call render_card() %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
       <thead>
-        <tr>
-          <th>Nama</th>
-          <th>NIK</th>
-          <th>RT/RW</th>
-          <th>Telepon</th>
-          <th>Status</th>
-          <th>Aksi</th>
+        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+          <th class="px-4 py-3 font-medium">Nama</th>
+          <th class="px-4 py-3 font-medium">NIK</th>
+          <th class="px-4 py-3 font-medium">RT/RW</th>
+          <th class="px-4 py-3 font-medium">Telepon</th>
+          <th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium text-right">Aksi</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
         {% for w in warga_list %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3">
+            <div class="flex items-center">
+              <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs mr-3 flex-shrink-0">
+                {{ w.nama_lengkap[0] | upper if w.nama_lengkap else '?' }}
+              </div>
+              <div>
+                <p class="font-medium text-gray-800">{{ w.nama_lengkap }}</p>
+                <p class="text-xs text-gray-500">Daftar: {{ w.created_at.strftime('%d %b %Y') if w.created_at else '-' }}</p>
+              </div>
+            </div>
+          </td>
+          <td class="px-4 py-3 font-mono text-xs text-gray-600">{{ w.nik }}</td>
+          <td class="px-4 py-3 text-xs">{{ w.rt_rw }}</td>
+          <td class="px-4 py-3 text-xs">{{ w.telepon }}</td>
+          <td class="px-4 py-3">{{ render_badge(w.status) }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{{ url_for('admin_warga.detail', warga_id=w.id) }}"
+               class="inline-flex items-center text-brand-600 hover:text-brand-700 text-sm font-medium">
+              {{ 'Verifikasi' if w.status == 'menunggu' else 'Detail' }}
+              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </a>
+          </td>
+        </tr>
+        {% else %}
         <tr>
-          <td>{{ w.nama_lengkap }}</td>
-          <td>{{ w.nik }}</td>
-          <td>{{ w.rt_rw }}</td>
-          <td>{{ w.telepon }}</td>
-          <td><span class="badge {{ w.status }}">{{ w.status }}</span></td>
-          <td><a class="button" href="{{ url_for('admin_warga.detail', warga_id=w.id) }}">Detail</a></td>
+          <td colspan="6" class="px-6 py-12 text-center text-gray-400">
+            <div class="flex flex-col items-center">
+              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+              </svg>
+              <p class="text-sm">
+                {% if status_filter %}
+                  Tidak ada warga berstatus {{ status_filter }}.
+                {% else %}
+                  Belum ada warga terdaftar.
+                {% endif %}
+              </p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-  {% else %}
-    <p><em>Belum ada warga dengan filter ini.</em></p>
+  </div>
+  {% if warga_list %}
+  <div class="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
+    Total: {{ warga_list | length }} warga.
+  </div>
   {% endif %}
-</body>
-</html>
+{% endcall %}
+{% endblock %}

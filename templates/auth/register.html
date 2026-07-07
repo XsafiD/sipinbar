@@ -1,67 +1,131 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Registrasi Warga — SIPINBAR</title>
-  <!--
-    STUB template (M2 §3.1) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-02 (UI Spec SCR-02) dengan layout
-    base.html + komponen dari T-FE-04 s/d T-FE-13.
-  -->
-  <style>
-    body { font-family: sans-serif; max-width: 480px; margin: 40px auto; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error   { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info    { background: #dbeafe; border: 1px solid #3b82f6; }
-    label { display: block; margin: 10px 0 4px; font-weight: bold; }
-    input, textarea { width: 100%; padding: 8px; box-sizing: border-box; }
-    button { margin-top: 16px; padding: 10px; width: 100%; }
-    small { color: #6b7280; display: block; margin-top: 2px; }
-    .error { color: #dc2626; }
-  </style>
-</head>
-<body>
-  <h1>Registrasi Warga SIPINBAR</h1>
-  <p><em>Status awal: <strong>menunggu verifikasi admin</strong>.</em></p>
+{# templates/auth/register.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Halaman Registrasi Warga (SCR-02). Tidak memakai app layout (centered card).
+  Sesuai UI Spec SCR-02 & mockup `register_sipinbar.html`.
 
-  <form method="post">
-    {{ form.csrf_token }}
+  Form: nik (16 digit), nama_lengkap, alamat, telepon, rt_rw + CSRF.
+  Validasi inline via WTForms. Link ke login.
 
-    <label for="nik">{{ form.nik.label.text }}</label>
-    {{ form.nik(id="nik", placeholder="16 digit angka") }}
-    {% if form.nik.errors %}<small class="error">{{ form.nik.errors[0] }}</small>{% endif %}
+  Refs: TODO T-UI-02, UI Spec SCR-02, mockup register_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/alert.html" import render_flashed %}
 
-    <label for="nama_lengkap">{{ form.nama_lengkap.label.text }}</label>
-    {{ form.nama_lengkap(id="nama_lengkap") }}
-    {% if form.nama_lengkap.errors %}<small class="error">{{ form.nama_lengkap.errors[0] }}</small>{% endif %}
+{% block title %}Registrasi Warga — SIPINBAR{% endblock %}
 
-    <label for="alamat">{{ form.alamat.label.text }}</label>
-    {{ form.alamat(id="alamat", rows=3) }}
-    {% if form.alamat.errors %}<small class="error">{{ form.alamat.errors[0] }}</small>{% endif %}
+{% block body %}
+<main class="flex-grow flex items-center justify-center p-4 min-h-screen bg-gray-50">
+  <div class="bg-white w-full max-w-lg rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
 
-    <label for="telepon">{{ form.telepon.label.text }}</label>
-    {{ form.telepon(id="telepon", placeholder="0812xxxxxxx") }}
-    {% if form.telepon.errors %}<small class="error">{{ form.telepon.errors[0] }}</small>{% endif %}
+    {# Header card #}
+    <div class="bg-brand-600 p-6 text-center">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4 shadow-sm">
+        <svg class="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-white tracking-wide">Registrasi Warga</h1>
+      <p class="text-brand-100 text-sm mt-1">Daftarkan diri Anda untuk mengajukan peminjaman barang</p>
+    </div>
 
-    <label for="rt_rw">{{ form.rt_rw.label.text }}</label>
-    {{ form.rt_rw(id="rt_rw", placeholder="001/002") }}
-    {% if form.rt_rw.errors %}<small class="error">{{ form.rt_rw.errors[0] }}</small>{% endif %}
+    {# Body #}
+    <div class="p-6 sm:p-8">
+      <h2 class="text-gray-800 text-lg font-semibold mb-4 text-center">Formulir Pendaftaran</h2>
 
-    <button type="submit">Daftar</button>
-  </form>
+      {{ render_flashed() }}
 
-  <p style="margin-top:20px">
-    Sudah pernah daftar & diverifikasi?
-    <a href="{{ url_for('auth.login') }}">Login</a>
-  </p>
-</body>
-</html>
+      <form method="post" action="{{ url_for('auth.register') }}" class="space-y-4">
+        {{ form.csrf_token }}
+
+        {# NIK #}
+        <div>
+          <label for="nik" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.nik.label.text }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.nik(id="nik", placeholder="16 digit NIK sesuai KTP", maxlength=16, inputmode="numeric",
+              class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.nik.errors else "border-gray-300")) }}
+          {% if form.nik.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.nik.errors[0] }}</p>
+          {% else %}
+          <p class="mt-1 text-xs text-gray-500">NIK harus tepat 16 digit angka.</p>
+          {% endif %}
+        </div>
+
+        {# Nama Lengkap #}
+        <div>
+          <label for="nama_lengkap" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.nama_lengkap.label.text }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.nama_lengkap(id="nama_lengkap", placeholder="Nama lengkap sesuai KTP",
+              class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.nama_lengkap.errors else "border-gray-300")) }}
+          {% if form.nama_lengkap.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.nama_lengkap.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        {# Alamat #}
+        <div>
+          <label for="alamat" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.alamat.label.text }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.alamat(id="alamat", rows=2, placeholder="Alamat domisili",
+              class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.alamat.errors else "border-gray-300")) }}
+          {% if form.alamat.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.alamat.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        {# Telepon & RT/RW (2 kolom di mobile+) #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="telepon" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ form.telepon.label.text }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.telepon(id="telepon", placeholder="0812xxxxxxx", inputmode="tel",
+                class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.telepon.errors else "border-gray-300")) }}
+            {% if form.telepon.errors %}
+            <p class="mt-1 text-xs text-red-500">{{ form.telepon.errors[0] }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label for="rt_rw" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ form.rt_rw.label.text }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.rt_rw(id="rt_rw", placeholder="001/002",
+                class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.rt_rw.errors else "border-gray-300")) }}
+            {% if form.rt_rw.errors %}
+            <p class="mt-1 text-xs text-red-500">{{ form.rt_rw.errors[0] }}</p>
+            {% else %}
+            <p class="mt-1 text-xs text-gray-500">Format: 001/002</p>
+            {% endif %}
+          </div>
+        </div>
+
+        {# Info verifikasi #}
+        <div class="bg-sky-50 border-l-4 border-sky-500 text-sky-700 p-3 rounded-md text-xs">
+          <p>Setelah mendaftar, akun Anda berstatus <strong>menunggu</strong>. Admin desa akan memverifikasi & memberi password awal sebelum Anda dapat login.</p>
+        </div>
+
+        {# Submit #}
+        <div class="pt-2">
+          <button type="submit" class="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500 transition-colors">
+            Daftar
+          </button>
+        </div>
+      </form>
+
+      {# Link login #}
+      <div class="mt-6 text-center text-sm text-gray-600">
+        Sudah punya akun?
+        <a href="{{ url_for('auth.login') }}" class="font-medium text-brand-600 hover:text-brand-500 hover:underline transition-colors">
+          Masuk di sini
+        </a>
+      </div>
+    </div>
+
+    <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
+      <p class="text-xs text-gray-500">&copy; 2026 Pemerintahan Desa. SIPINBAR versi 1.0.</p>
+    </div>
+  </div>
+</main>
+{% endblock %}

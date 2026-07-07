@@ -1,77 +1,193 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>{% if mode == 'edit' %}Edit{% else %}Tambah{% endif %} Barang — SIPINBAR</title>
-  <!--
-    STUB template (M2 §3.2) — dipakai untuk mode create & edit.
-    Akan digantikan oleh T-UI-06 (UI Spec SCR-06 & SCR-07) dengan
-    layout base.html + komponen form.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; max-width: 640px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
-    form fieldset { border: none; padding: 0; }
-    .field { margin-bottom: 12px; }
-    label { display: block; font-weight: bold; margin-bottom: 4px; }
-    input[type=text], input[type=number], input[type=file], select, textarea {
-      width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; box-sizing: border-box;
-    }
-    .buttons { margin-top: 16px; display: flex; gap: 8px; }
-    button.save { background: #16a34a; color: white; padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; }
-    a.cancel { background: #6b7280; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; }
-  </style>
-</head>
-<body>
-  <h1>{% if mode == 'edit' %}Edit{% else %}Tambah{% endif %} Barang</h1>
+{# templates/barang/form.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
+  Form Tambah/Edit Barang (SCR-06 & SCR-07). Mode create & edit
+  memakai template yang sama (conditional `barang` untuk pre-fill).
+
+  Field: nama, kategori (dropdown), jumlah, kondisi (dropdown),
+         deskripsi (textarea), foto (file upload, opsional).
+
+  Context dari controller:
+    - form:    BarangForm (Flask-WTF)
+    - mode:    'create' | 'edit'
+    - barang:  Barang (hanya mode edit, untuk preview & cancel URL)
+
+  Refs: TODO T-UI-06, UI Spec SCR-06 & SCR-07, mockup
+        form_tambah_barang_sipinbar.html & edit_barang_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/card.html" import render_card %}
+
+{% block title %}
+{{ 'Edit' if mode == 'edit' else 'Tambah' }} Barang — SIPINBAR
+{% endblock %}
+
+{% block content %}
+{# Breadcrumb #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('barang.index') }}" class="hover:text-brand-600">Katalog Barang</a>
+  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  {% if mode == 'edit' and barang %}
+  <a href="{{ url_for('barang.detail', barang_id=barang.id) }}" class="hover:text-brand-600 truncate">{{ barang.nama }}</a>
+  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  {% endif %}
+  <span class="text-gray-700">{{ 'Edit' if mode == 'edit' else 'Tambah' }}</span>
+</nav>
+
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">
+    {{ 'Edit Barang' if mode == 'edit' else 'Tambah Barang Baru' }}
+  </h1>
+  <p class="text-sm text-gray-500 mt-1">
+    {% if mode == 'edit' %}
+      Perbarui informasi barang inventaris.
+    {% else %}
+      Isi formulir berikut untuk menambahkan barang baru ke katalog.
     {% endif %}
-  {% endwith %}
+  </p>
+</div>
 
-  <form method="post" enctype="multipart/form-data">
-    {{ form.csrf_token }}
-    <fieldset>
-      <div class="field">
-        {{ form.nama.label }}
-        {{ form.nama(placeholder="Contoh: Proyektor Epson") }}
-      </div>
-      <div class="field">
-        {{ form.kategori_id.label }}
-        {{ form.kategori_id() }}
-      </div>
-      <div class="field">
-        {{ form.jumlah.label }}
-        {{ form.jumlah(min=1) }}
-      </div>
-      <div class="field">
-        {{ form.kondisi.label }}
-        {{ form.kondisi() }}
-      </div>
-      <div class="field">
-        {{ form.status.label }}
-        {{ form.status() }}
-      </div>
-      <div class="field">
-        {{ form.deskripsi.label }}
-        {{ form.deskripsi(rows=4, placeholder="Deskripsi opsional...") }}
-      </div>
-      <div class="field">
-        <label for="foto">Foto (opsional — png/jpg/jpeg/webp, maks 5MB)</label>
-        <input type="file" id="foto" name="foto" accept=".png,.jpg,.jpeg,.webp">
-      </div>
-    </fieldset>
-    <div class="buttons">
-      <button class="save" type="submit">Simpan</button>
-      <a class="cancel" href="{% if mode == 'edit' and barang %}{{ url_for('barang.detail', barang_id=barang.id) }}{% else %}{{ url_for('barang.index') }}{% endif %}">Batal</a>
-    </div>
-  </form>
-</body>
-</html>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  {# Form utama #}
+  <div class="lg:col-span-2">
+    {% call render_card(title='Informasi Barang') %}
+      <form method="post" enctype="multipart/form-data"
+            action="{% if mode == 'edit' and barang %}{{ url_for('barang.edit', barang_id=barang.id) }}{% else %}{{ url_for('barang.tambah') }}{% endif %}"
+            class="space-y-5">
+        {{ form.csrf_token }}
+
+        {# Nama #}
+        <div>
+          <label for="nama" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.nama.label.text }} <span class="text-red-500">*</span>
+          </label>
+          {{ form.nama(id="nama", placeholder="Contoh: Proyektor Epson EB-X51",
+              class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.nama.errors else "border-gray-300")) }}
+          {% if form.nama.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.nama.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        {# Kategori & Jumlah (2 kolom) #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="kategori_id" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ form.kategori_id.label.text }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.kategori_id(id="kategori_id",
+                class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.kategori_id.errors else "border-gray-300")) }}
+            {% if form.kategori_id.errors %}
+            <p class="mt-1 text-xs text-red-500">{{ form.kategori_id.errors[0] }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label for="jumlah" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ form.jumlah.label.text }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.jumlah(id="jumlah", min=1, placeholder="1",
+                class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.jumlah.errors else "border-gray-300")) }}
+            {% if form.jumlah.errors %}
+            <p class="mt-1 text-xs text-red-500">{{ form.jumlah.errors[0] }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        {# Kondisi & Status (2 kolom) #}
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label for="kondisi" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ form.kondisi.label.text }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.kondisi(id="kondisi",
+                class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.kondisi.errors else "border-gray-300")) }}
+            {% if form.kondisi.errors %}
+            <p class="mt-1 text-xs text-red-500">{{ form.kondisi.errors[0] }}</p>
+            {% endif %}
+          </div>
+          <div>
+            <label for="status" class="block text-sm font-medium text-gray-700 mb-1">
+              {{ form.status.label.text }} <span class="text-red-500">*</span>
+            </label>
+            {{ form.status(id="status",
+                class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.status.errors else "border-gray-300")) }}
+            {% if form.status.errors %}
+            <p class="mt-1 text-xs text-red-500">{{ form.status.errors[0] }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        {# Deskripsi #}
+        <div>
+          <label for="deskripsi" class="block text-sm font-medium text-gray-700 mb-1">
+            {{ form.deskripsi.label.text }}
+          </label>
+          {{ form.deskripsi(id="deskripsi", rows=4, placeholder="Deskripsi opsional, mis. spesifikasi atau catatan barang...",
+              class="w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.deskripsi.errors else "border-gray-300")) }}
+          {% if form.deskripsi.errors %}
+          <p class="mt-1 text-xs text-red-500">{{ form.deskripsi.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        {# Foto upload #}
+        <div>
+          <label for="foto" class="block text-sm font-medium text-gray-700 mb-1">
+            Foto Barang
+            {% if mode == 'edit' %}<span class="text-gray-500 font-normal">(kosongkan jika tidak ingin ubah)</span>{% endif %}
+          </label>
+          <input type="file" id="foto" name="foto" accept=".png,.jpg,.jpeg,.webp"
+                 class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 cursor-pointer">
+          <p class="mt-1 text-xs text-gray-500">Format: PNG, JPG, JPEG, WEBP. Maks 5MB.</p>
+        </div>
+
+        {# Submit & Cancel #}
+        <div class="flex items-center space-x-3 pt-4 border-t border-gray-100">
+          <button type="submit" class="px-5 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors shadow-sm font-medium text-sm">
+            {{ 'Simpan Perubahan' if mode == 'edit' else 'Simpan Barang' }}
+          </button>
+          <a href="{% if mode == 'edit' and barang %}{{ url_for('barang.detail', barang_id=barang.id) }}{% else %}{{ url_for('barang.index') }}{% endif %}"
+             class="px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm">
+            Batal
+          </a>
+        </div>
+      </form>
+    {% endcall %}
+  </div>
+
+  {# Sidebar: preview foto lama (mode edit) + tips #}
+  <div class="lg:col-span-1 space-y-6">
+    {% if mode == 'edit' and barang and barang.foto_path %}
+    {% call render_card(title='Foto Saat Ini') %}
+      <img src="{{ url_for('static', filename=barang.foto_path) }}" alt="{{ barang.nama }}"
+           class="w-full h-40 object-cover rounded-lg border border-gray-200">
+      <p class="text-xs text-gray-500 mt-2">Unggah foto baru untuk mengganti.</p>
+    {% endcall %}
+    {% endif %}
+
+    {% call render_card(title='Tips Pengisian') %}
+      <ul class="text-sm text-gray-600 space-y-2">
+        <li class="flex items-start">
+          <svg class="w-4 h-4 text-brand-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          <span>Nama barang sebaiknya unik &amp; deskriptif.</span>
+        </li>
+        <li class="flex items-start">
+          <svg class="w-4 h-4 text-brand-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          <span>Kategori menentukan tarif denda per hari.</span>
+        </li>
+        <li class="flex items-start">
+          <svg class="w-4 h-4 text-brand-500 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+          </svg>
+          <span>Status 'rusak' otomatis mengubah ketersediaan.</span>
+        </li>
+      </ul>
+    {% endcall %}
+  </div>
+</div>
+{% endblock %}

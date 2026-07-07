@@ -1,90 +1,159 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Katalog Barang — SIPINBAR</title>
-  <!--
-    STUB template (M2 §3.2) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-04 (UI Spec SCR-04) dengan layout
-    base.html + komponen card/table/badge/pagination.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
-    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
-    form.filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-    th { background: #f3f4f6; }
-    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-    .badge.tersedia { background: #dcfce7; color: #15803d; }
-    .badge.dipinjam { background: #dbeafe; color: #1d4ed8; }
-    .badge.perbaikan { background: #fef3c7; color: #b45309; }
-    .badge.rusak { background: #fee2e2; color: #b91c1c; }
-    a.button { display: inline-block; padding: 4px 10px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; }
-    a.button.tambah { background: #16a34a; }
-  </style>
-</head>
-<body>
-  <h1>Katalog Barang</h1>
+{# templates/barang/index.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Katalog Barang (SCR-04). Sesuai UI Spec SCR-04 & mockup
+  `katalog_barang_sipinbar.html`.
 
-  <form class="filter" method="get">
-    <input type="text" name="q" placeholder="Cari nama barang..." value="{{ q_filter }}">
-    <select name="kategori">
-      <option value="">Semua kategori</option>
-      {% for k in kategori_list %}
-        <option value="{{ k.id }}" {% if kategori_filter == k.id %}selected{% endif %}>{{ k.nama }}</option>
-      {% endfor %}
-    </select>
-    <select name="status">
-      <option value="">Semua status</option>
-      <option value="tersedia"  {% if status_filter == 'tersedia'  %}selected{% endif %}>Tersedia</option>
-      <option value="dipinjam"  {% if status_filter == 'dipinjam'  %}selected{% endif %}>Dipinjam</option>
-      <option value="perbaikan" {% if status_filter == 'perbaikan' %}selected{% endif %}>Perbaikan</option>
-      <option value="rusak"     {% if status_filter == 'rusak'     %}selected{% endif %}>Rusak</option>
-    </select>
-    <button type="submit">Filter</button>
-    <a class="button tambah" href="{{ url_for('barang.tambah') }}">+ Tambah Barang</a>
-  </form>
+  Fitur:
+    - Search bar + filter kategori (dropdown) + filter status
+    - Grid card barang (foto placeholder, nama, kategori, status badge)
+    - Tombol "Tambah" (admin only)
+    - Empty state ketika tidak ada barang
 
-  {% if barang_list %}
-    <table>
-      <thead>
-        <tr>
-          <th>Nama</th>
-          <th>Kategori</th>
-          <th>Jumlah</th>
-          <th>Kondisi</th>
-          <th>Status</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for b in barang_list %}
-        <tr>
-          <td>{{ b.nama }}</td>
-          <td>{{ b.kategori.nama }}</td>
-          <td>{{ b.jumlah_unit }}</td>
-          <td>{{ b.kondisi }}</td>
-          <td><span class="badge {{ b.status }}">{{ b.status }}</span></td>
-          <td><a class="button" href="{{ url_for('barang.detail', barang_id=b.id) }}">Detail</a></td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  {% else %}
-    <p><em>Belum ada barang dengan filter ini.</em></p>
+  Context dari controller:
+    - barang_list:    list[Barang]
+    - kategori_list:  list[Kategori]
+    - q_filter, kategori_filter, status_filter: string
+
+  Refs: TODO T-UI-04, UI Spec SCR-04, mockup katalog_barang_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/badge.html" import render_badge %}
+
+{% block title %}Katalog Barang — SIPINBAR{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Katalog Barang</h1>
+    <p class="text-sm text-gray-500 mt-1">Cari dan ajukan peminjaman barang inventaris desa.</p>
+  </div>
+  {% if session.get('role') == 'admin' %}
+  <a href="{{ url_for('barang.tambah') }}" class="inline-flex items-center justify-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
+    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+    </svg>
+    Tambah Barang
+  </a>
   {% endif %}
-</body>
-</html>
+</div>
+
+{# ── Filter bar ─────────────────────────────────────────────── #}
+<form method="get" action="{{ url_for('barang.index') }}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    {# Search by name #}
+    <div class="relative">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+        </svg>
+      </div>
+      <input type="text" name="q" value="{{ q_filter }}" placeholder="Cari nama barang..."
+             class="pl-10 w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+    </div>
+    {# Filter kategori #}
+    <select name="kategori" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+      <option value="">Semua Kategori</option>
+      {% for k in kategori_list %}
+      <option value="{{ k.id }}" {{ 'selected' if kategori_filter == k.id else '' }}>{{ k.nama }}</option>
+      {% endfor %}
+    </select>
+    {# Filter status #}
+    <select name="status" class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+      <option value="">Semua Status</option>
+      <option value="tersedia"  {{ 'selected' if status_filter == 'tersedia'  else '' }}>Tersedia</option>
+      <option value="dipinjam"  {{ 'selected' if status_filter == 'dipinjam'  else '' }}>Dipinjam</option>
+      <option value="perbaikan" {{ 'selected' if status_filter == 'perbaikan' else '' }}>Perbaikan</option>
+      <option value="rusak"     {{ 'selected' if status_filter == 'rusak'     else '' }}>Rusak</option>
+    </select>
+  </div>
+  <div class="flex items-center justify-between mt-3">
+    <p class="text-xs text-gray-500">
+      Menampilkan {{ barang_list | length }} barang.
+    </p>
+    <div class="flex space-x-2">
+      {% if q_filter or kategori_filter or status_filter %}
+      <a href="{{ url_for('barang.index') }}" class="text-sm text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors">Reset</a>
+      {% endif %}
+      <button type="submit" class="px-4 py-1.5 bg-brand-600 text-white rounded-md hover:bg-brand-700 text-sm font-medium transition-colors">
+        Filter
+      </button>
+    </div>
+  </div>
+</form>
+
+{# ── Grid katalog barang ────────────────────────────────────── #}
+{% if barang_list %}
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+  {% for b in barang_list %}
+  <a href="{{ url_for('barang.detail', barang_id=b.id) }}"
+     class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md hover:-translate-y-0.5 transition-all group">
+    {# Foto / placeholder #}
+    <div class="aspect-w-4 aspect-h-3 bg-gray-100 relative">
+      {% if b.foto_path %}
+      <img src="{{ url_for('static', filename=b.foto_path) }}" alt="{{ b.nama }}"
+           class="w-full h-40 object-cover">
+      {% else %}
+      <div class="w-full h-40 flex items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
+        <svg class="w-16 h-16 text-brand-300 group-hover:text-brand-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+        </svg>
+      </div>
+      {% endif %}
+      <div class="absolute top-2 right-2">
+        {{ render_badge(b.status) }}
+      </div>
+    </div>
+    {# Info #}
+    <div class="p-4">
+      <div class="flex items-start justify-between gap-2 mb-1">
+        <h3 class="font-semibold text-gray-800 text-sm leading-tight line-clamp-2 group-hover:text-brand-700 transition-colors">
+          {{ b.nama }}
+        </h3>
+      </div>
+      <p class="text-xs text-gray-500 mb-2">
+        <span class="inline-flex items-center">
+          <svg class="w-3.5 h-3.5 mr-1 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5a1.99 1.99 0 011 1.273L14 6m-7 0a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2V8a2 2 0 00-2-2h-7m0 0V3a1 1 0 011-1h2"></path>
+          </svg>
+          {{ b.kategori.nama if b.kategori else 'Tanpa kategori' }}
+        </span>
+      </p>
+      <div class="flex items-center justify-between text-xs">
+        <span class="text-gray-500">Jumlah: <strong class="text-gray-700">{{ b.jumlah_unit }}</strong></span>
+        <span class="text-brand-600 font-medium group-hover:underline">Detail →</span>
+      </div>
+    </div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}
+{# Empty state #}
+<div class="bg-white rounded-xl shadow-sm border border-gray-100 p-12 text-center">
+  <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+    <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+    </svg>
+  </div>
+  <h3 class="text-lg font-semibold text-gray-800 mb-1">Belum ada barang</h3>
+  <p class="text-sm text-gray-500 mb-4">
+    {% if q_filter or kategori_filter or status_filter %}
+      Tidak ada barang yang cocok dengan filter ini.
+    {% else %}
+      Katalog barang masih kosong.
+    {% endif %}
+  </p>
+  {% if session.get('role') == 'admin' %}
+  <a href="{{ url_for('barang.tambah') }}" class="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium">
+    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+    </svg>
+    Tambah Barang Pertama
+  </a>
+  {% else %}
+  <a href="{{ url_for('barang.index') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+    Reset Filter
+  </a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

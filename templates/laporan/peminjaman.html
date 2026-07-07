@@ -1,94 +1,152 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Laporan Peminjaman — SIPINBAR</title>
-  <!--
-    STUB template (M3 §4.2) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-14 (UI Spec SCR-15) dengan layout
-    base.html + komponen table/card.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
-    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
-    form.filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
-    input[type=date], input[type=text], select { padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-    th { background: #f3f4f6; }
-    .summary { display: flex; gap: 16px; margin: 16px 0; flex-wrap: wrap; }
-    .summary .card { padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; }
-    .summary .label { font-size: 12px; color: #6b7280; text-transform: uppercase; }
-    .summary .value { font-size: 20px; font-weight: bold; }
-    a.button { display: inline-block; padding: 4px 10px; background: #16a34a; color: white; text-decoration: none; border-radius: 4px; }
-    a.back { background: #6b7280; }
-  </style>
-</head>
-<body>
-  <h1>Laporan Peminjaman</h1>
+{# templates/laporan/peminjaman.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Laporan Peminjaman (SCR-15). Sesuai UI Spec SCR-15 & mockup
+  `laporan_peminjaman_sipinbar.html`.
 
-  <form class="filter" method="get">
-    <label>Mulai: <input type="date" name="mulai" value="{{ mulai_filter }}"></label>
-    <label>Selesai: <input type="date" name="selesai" value="{{ selesai_filter }}"></label>
-    <input type="text" name="status" placeholder="status (diajukan/dipinjam/dll)" value="{{ status_filter }}">
-    <button type="submit">Filter</button>
-    <a class="button" href="{{ url_for('laporan.export', type='peminjaman', format='csv', mulai=mulai_filter, selesai=selesai_filter, status=status_filter) }}">Export CSV</a>
-    <a class="button back" href="{{ url_for('laporan.index') }}">Kembali</a>
-  </form>
+  Fitur:
+    - Tabel detail peminjaman + summary (total, denda, distribusi status)
+    - Filter periode (tanggal_mulai - tanggal_selesai) + status
+    - Tombol export CSV
 
-  {% set summary = data.summary or {} %}
-  {% if summary %}
-    <div class="summary">
-      <div class="card">
-        <div class="label">Total Peminjaman</div>
-        <div class="value">{{ summary.total_peminjaman }}</div>
-      </div>
-      <div class="card">
-        <div class="label">Total Denda (Rp)</div>
-        <div class="value">{{ "{:,}".format(summary.total_denda_rupiah or 0) }}</div>
-      </div>
+  Context dari controller:
+    - data:           dict {rows, summary, metadata}
+    - mulai_filter, selesai_filter, status_filter: str
+
+  Refs: TODO T-UI-14, UI Spec SCR-15, mockup laporan_peminjaman_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/badge.html" import render_badge %}
+{% from "components/card.html" import render_card, render_stat_card %}
+
+{% block title %}Laporan Peminjaman — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumb #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('laporan.index') }}" class="hover:text-brand-600">Pusat Laporan</a>
+  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  <span class="text-gray-700">Laporan Peminjaman</span>
+</nav>
+
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Laporan Peminjaman</h1>
+    <p class="text-sm text-gray-500 mt-1">Transaksi peminjaman dengan filter periode & status.</p>
+  </div>
+  <a href="{{ url_for('laporan.export', type='peminjaman', format='csv', mulai=mulai_filter, selesai=selesai_filter, status=status_filter) }}"
+     class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm no-print">
+    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+    </svg>
+    Export CSV
+  </a>
+</div>
+
+{# ── Filter periode ─────────────────────────────────────────── #}
+<form method="get" action="{{ url_for('laporan.peminjaman') }}" class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6 no-print">
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+    <div>
+      <label for="mulai" class="block text-xs font-medium text-gray-700 mb-1">Dari Tanggal</label>
+      <input type="date" name="mulai" id="mulai" value="{{ mulai_filter }}"
+             class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
     </div>
-  {% endif %}
+    <div>
+      <label for="selesai" class="block text-xs font-medium text-gray-700 mb-1">Sampai Tanggal</label>
+      <input type="date" name="selesai" id="selesai" value="{{ selesai_filter }}"
+             class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+    </div>
+    <div>
+      <label for="status" class="block text-xs font-medium text-gray-700 mb-1">Status</label>
+      <select name="status" id="status"
+              class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+        <option value="">Semua Status</option>
+        {% for s in ['diajukan', 'disetujui', 'ditolak', 'dipinjam', 'terlambat', 'dikembalikan'] %}
+        <option value="{{ s }}" {{ 'selected' if status_filter == s else '' }}>{{ s | title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+  <div class="flex items-center justify-end space-x-2 mt-3">
+    <a href="{{ url_for('laporan.peminjaman') }}" class="text-sm text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors">Reset</a>
+    <button type="submit" class="px-4 py-1.5 bg-brand-600 text-white rounded-md hover:bg-brand-700 text-sm font-medium transition-colors">Terapkan Filter</button>
+  </div>
+</form>
 
-  {% if data.rows %}
-    <table>
+{# ── Summary #}
+{% set summary = data.summary or {} %}
+{% if summary %}
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+  {{ render_stat_card('Total Peminjaman', summary.total_peminjaman or 0, color='blue',
+    icon_path='M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2') }}
+  {{ render_stat_card('Total Denda', 'Rp {:,.0f}'.format(summary.total_denda_rupiah or 0), color='red',
+    icon_path='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z') }}
+  {{ render_stat_card('Distribusi Status', (summary.distribusi_status or {}) | length, color='purple',
+    icon_path='M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z') }}
+</div>
+
+{# Distribusi status #}
+{% set dist = summary.distribusi_status or {} %}
+{% if dist %}
+{% call render_card(title='Distribusi Status') %}
+  <div class="flex flex-wrap gap-2">
+    {% for s, count in dist.items() %}
+    <div class="inline-flex items-center space-x-2 bg-gray-50 rounded-lg px-3 py-2">
+      {{ render_badge(s) }}
+      <span class="text-sm font-semibold text-gray-700">{{ count }}</span>
+    </div>
+    {% endfor %}
+  </div>
+{% endcall %}
+{% endif %}
+{% endif %}
+
+{# ── Tabel peminjaman ───────────────────────────────────────── #}
+{% call render_card(title='Detail Peminjaman') %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
       <thead>
-        <tr>
-          <th>Kode</th>
-          <th>Warga</th>
-          <th>Tanggal Pinjam</th>
-          <th>Rencana Kembali</th>
-          <th>Status</th>
-          <th>Denda (Rp)</th>
+        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+          <th class="px-4 py-3 font-medium">Kode</th>
+          <th class="px-4 py-3 font-medium">Warga ID</th>
+          <th class="px-4 py-3 font-medium">Tgl Pinjam</th>
+          <th class="px-4 py-3 font-medium">Rencana Kembali</th>
+          <th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium text-right">Denda (Rp)</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
         {% for row in data.rows %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3 font-mono text-xs">{{ row.kode_peminjaman }}</td>
+          <td class="px-4 py-3 text-xs text-gray-500 font-mono">{{ row.warga_id[:8] }}…</td>
+          <td class="px-4 py-3 text-xs">{{ row.tanggal_pinjam }}</td>
+          <td class="px-4 py-3 text-xs">{{ row.tanggal_kembali_rencana }}</td>
+          <td class="px-4 py-3">{{ render_badge(row.status) }}</td>
+          <td class="px-4 py-3 text-right text-xs {{ 'text-red-600 font-medium' if row.total_denda_rupiah else 'text-gray-500' }}">
+            {{ "{:,.0f}".format(row.total_denda_rupiah or 0) }}
+          </td>
+        </tr>
+        {% else %}
         <tr>
-          <td>{{ row.kode_peminjaman }}</td>
-          <td>{{ row.warga_id }}</td>
-          <td>{{ row.tanggal_pinjam }}</td>
-          <td>{{ row.tanggal_kembali_rencana }}</td>
-          <td>{{ row.status_display }}</td>
-          <td>{{ "{:,}".format(row.total_denda_rupiah or 0) }}</td>
+          <td colspan="6" class="px-6 py-12 text-center text-gray-400">
+            <div class="flex flex-col items-center">
+              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              <p class="text-sm">Tidak ada data peminjaman untuk filter ini.</p>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-  {% else %}
-    <p><em>Tidak ada data peminjaman untuk filter ini.</em></p>
+  </div>
+  {% if data.rows %}
+  <div class="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500">
+    Total: {{ data.rows | length }} record.
+  </div>
   {% endif %}
-</body>
-</html>
+{% endcall %}
+{% endblock %}

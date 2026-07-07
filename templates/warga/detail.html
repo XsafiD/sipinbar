@@ -1,116 +1,226 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Detail Warga — SIPINBAR</title>
-  <!--
-    STUB template (M2 §3.1) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-12 (UI Spec SCR-13) dengan layout
-    base.html + komponen card/table/badge.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
-    .info-grid { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 16px 0; }
-    .info-grid dt { font-weight: bold; color: #374151; }
-    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-    .badge.aktif { background: #dcfce7; color: #15803d; }
-    .badge.menunggu { background: #fef3c7; color: #b45309; }
-    .badge.ditolak, .badge.diblokir { background: #fee2e2; color: #b91c1c; }
-    section { margin: 24px 0; padding: 16px; background: #f9fafb; border-radius: 6px; }
-    form { display: inline-block; margin-right: 8px; }
-    input, textarea, button { padding: 6px; }
-    table { width: 100%; border-collapse: collapse; }
-    th, td { padding: 6px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-    a { color: #2563eb; }
-  </style>
-</head>
-<body>
-  <p><a href="{{ url_for('admin_warga.index') }}">&larr; Kembali ke daftar warga</a></p>
+{# templates/warga/detail.html
 
-  <h1>{{ warga.nama_lengkap }}</h1>
+  Detail Warga (SCR-13). Sesuai UI Spec SCR-13 & mockup
+  `detail_warga_sipinbar.html`.
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Fitur:
+    - Info lengkap + status badge
+    - Tabel riwayat peminjaman (kode, tanggal, status)
+    - Tombol verify/reject/blokir/aktifkan sesuai status
 
-  <dl class="info-grid">
-    <dt>NIK</dt><dd>{{ warga.nik }}</dd>
-    <dt>Status</dt><dd><span class="badge {{ warga.status }}">{{ warga.status }}</span></dd>
-    <dt>Alamat</dt><dd>{{ warga.alamat }}</dd>
-    <dt>Telepon</dt><dd>{{ warga.telepon }}</dd>
-    <dt>RT/RW</dt><dd>{{ warga.rt_rw }}</dd>
-    {% if warga.alasan_penolakan %}
-      <dt>Alasan Penolakan</dt><dd>{{ warga.alasan_penolakan }}</dd>
-    {% endif %}
-    {% if warga.verified_at %}
-      <dt>Diverifikasi pada</dt><dd>{{ warga.verified_at }}</dd>
-    {% endif %}
-  </dl>
+  Context dari controller:
+    - warga:         Warga
+    - riwayat:       list[Peminjaman]
+    - verify_form:   VerifyForm (CSRF + password)
+    - reject_form:   RejectForm (CSRF + alasan)
+    - confirm_form:  ConfirmForm (CSRF)
 
-  {# ── Aksi kontekstual sesuai status warga ── #}
-  <section>
-    <h2>Aksi</h2>
+  Refs: TODO T-UI-12, UI Spec SCR-13, mockup detail_warga_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/badge.html" import render_badge %}
+{% from "components/card.html" import render_card %}
+{% from "components/modal.html" import render_modal, render_modal_trigger %}
 
-    {% if warga.status == 'menunggu' or warga.status == 'ditolak' %}
+{% block title %}{{ warga.nama_lengkap }} — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumb #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin_warga.index') }}" class="hover:text-brand-600">Daftar Warga</a>
+  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  <span class="text-gray-700 truncate">{{ warga.nama_lengkap }}</span>
+</nav>
+
+<div class="mb-6 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+  <div class="flex items-center space-x-4">
+    <div class="w-14 h-14 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xl flex-shrink-0">
+      {{ warga.nama_lengkap[0] | upper if warga.nama_lengkap else '?' }}
+    </div>
+    <div>
+      <div class="flex items-center space-x-2 mb-1">
+        <h1 class="text-2xl font-bold text-gray-900">{{ warga.nama_lengkap }}</h1>
+        {{ render_badge(warga.status) }}
+      </div>
+      <p class="text-sm text-gray-500 font-mono">NIK: {{ warga.nik }}</p>
+    </div>
+  </div>
+  <a href="{{ url_for('admin_warga.index') }}" class="inline-flex items-center px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+    </svg>
+    Kembali
+  </a>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+  {# Kolom kiri: info + riwayat #}
+  <div class="lg:col-span-2 space-y-6">
+    {% call render_card(title='Informasi Warga') %}
+      <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">NIK</dt>
+          <dd class="text-sm text-gray-800 mt-1 font-mono">{{ warga.nik }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">RT/RW</dt>
+          <dd class="text-sm text-gray-800 mt-1">{{ warga.rt_rw }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Telepon</dt>
+          <dd class="text-sm text-gray-800 mt-1">{{ warga.telepon }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Status</dt>
+          <dd class="mt-1">{{ render_badge(warga.status) }}</dd>
+        </div>
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Alamat</dt>
+          <dd class="text-sm text-gray-700 mt-1 whitespace-pre-line">{{ warga.alamat }}</dd>
+        </div>
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Terdaftar</dt>
+          <dd class="text-sm text-gray-800 mt-1">{{ warga.created_at.strftime('%d %b %Y') if warga.created_at else '-' }}</dd>
+        </div>
+        {% if warga.verified_at %}
+        <div>
+          <dt class="text-xs font-medium text-gray-500 uppercase tracking-wider">Diverifikasi</dt>
+          <dd class="text-sm text-gray-800 mt-1">{{ warga.verified_at.strftime('%d %b %Y') }}</dd>
+        </div>
+        {% endif %}
+        {% if warga.alasan_penolakan %}
+        <div class="sm:col-span-2">
+          <dt class="text-xs font-medium text-red-500 uppercase tracking-wider">Alasan Penolakan</dt>
+          <dd class="text-sm text-red-700 mt-1 bg-red-50 border border-red-200 rounded-md p-3">{{ warga.alasan_penolakan }}</dd>
+        </div>
+        {% endif %}
+      </dl>
+    {% endcall %}
+
+    {# Riwayat peminjaman #}
+    {% call render_card(title='Riwayat Peminjaman') %}
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+              <th class="px-4 py-3 font-medium">Kode</th>
+              <th class="px-4 py-3 font-medium">Tgl Pinjam</th>
+              <th class="px-4 py-3 font-medium">Jatuh Tempo</th>
+              <th class="px-4 py-3 font-medium">Status</th>
+              <th class="px-4 py-3 font-medium text-right">Aksi</th>
+            </tr>
+          </thead>
+          <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
+            {% for p in riwayat %}
+            <tr class="hover:bg-gray-50 transition-colors">
+              <td class="px-4 py-3 font-mono text-xs text-gray-700">{{ p.kode_peminjaman }}</td>
+              <td class="px-4 py-3 text-xs">{{ p.tanggal_pinjam.isoformat() if p.tanggal_pinjam else '-' }}</td>
+              <td class="px-4 py-3 text-xs">{{ p.tanggal_kembali_rencana.isoformat() if p.tanggal_kembali_rencana else '-' }}</td>
+              <td class="px-4 py-3">{{ render_badge(p.status) }}</td>
+              <td class="px-4 py-3 text-right">
+                <a href="{{ url_for('peminjaman.detail', peminjaman_id=p.id) }}"
+                   class="text-brand-600 hover:text-brand-700 text-sm font-medium">Detail</a>
+              </td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="5" class="px-6 py-8 text-center text-gray-400 text-sm">
+                Belum ada riwayat peminjaman.
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endcall %}
+  </div>
+
+  {# Kolom kanan: aksi kontekstual #}
+  <div class="lg:col-span-1">
+    {% call render_card(title='Aksi') %}
+      {% if warga.status == 'menunggu' or warga.status == 'ditolak' %}
       {# Verifikasi: set password awal, ubah status ke aktif #}
-      <form method="post" action="{{ url_for('admin_warga.verify', warga_id=warga.id) }}">
+      <form method="post" action="{{ url_for('admin_warga.verify', warga_id=warga.id) }}" class="space-y-3">
         {{ verify_form.csrf_token }}
-        <label>Password awal:
-          <input type="password" name="password" minlength="6" required placeholder="min 6 karakter">
-        </label>
-        <button type="submit">Verifikasi Warga</button>
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
+            Password Awal Warga <span class="text-red-500">*</span>
+          </label>
+          <input type="password" name="password" id="password" minlength="6" required
+                 placeholder="Minimal 6 karakter"
+                 class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+          <p class="mt-1 text-xs text-gray-500">Password ini akan diberikan ke warga untuk login pertama.</p>
+        </div>
+        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
+          Verifikasi Warga
+        </button>
       </form>
 
       {% if warga.status == 'menunggu' %}
-        <form method="post" action="{{ url_for('admin_warga.reject', warga_id=warga.id) }}">
-          {{ reject_form.csrf_token }}
-          <label>Alasan:
-            <textarea name="alasan" minlength="5" required placeholder="alasan penolakan"></textarea>
-          </label>
-          <button type="submit">Tolak</button>
-        </form>
+      <div class="mt-3 pt-3 border-t border-gray-100">
+        {{ render_modal_trigger('modal-tolak-warga', 'Tolak Pendaftaran', variant='danger',
+            icon_path='M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z') }}
+      </div>
       {% endif %}
 
-    {% elif warga.status == 'aktif' %}
+      {% elif warga.status == 'aktif' %}
+      <div class="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+        <p class="text-sm text-green-700 font-medium">Warga aktif & dapat melakukan peminjaman.</p>
+      </div>
       <form method="post" action="{{ url_for('admin_warga.blokir', warga_id=warga.id) }}">
         {{ confirm_form.csrf_token }}
-        <button type="submit" style="background:#ef4444;color:white">Blokir Warga</button>
+        <button type="submit" onclick="return confirm('Blokir warga ini? Warga tidak dapat login atau meminjam hingga diaktifkan kembali.')"
+                class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium shadow-sm">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path>
+          </svg>
+          Blokir Warga
+        </button>
       </form>
 
-    {% elif warga.status == 'diblokir' %}
+      {% elif warga.status == 'diblokir' %}
+      <div class="bg-red-50 border border-red-200 rounded-lg p-3 mb-3">
+        <p class="text-sm text-red-700 font-medium">Warga diblokir & tidak dapat login atau meminjam.</p>
+      </div>
       <form method="post" action="{{ url_for('admin_warga.aktifkan', warga_id=warga.id) }}">
         {{ confirm_form.csrf_token }}
-        <button type="submit">Aktifkan Kembali</button>
+        <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          Aktifkan Kembali
+        </button>
       </form>
-    {% endif %}
-  </section>
+      {% endif %}
+    {% endcall %}
+  </div>
+</div>
 
-  <section>
-    <h2>Riwayat Peminjaman</h2>
-    {% if riwayat %}
-      <table>
-        <thead><tr><th>Kode</th><th>Tanggal Pinjam</th><th>Status</th></tr></thead>
-        <tbody>
-          {% for p in riwayat %}
-          <tr>
-            <td>{{ p.kode_peminjaman }}</td>
-            <td>{{ p.tanggal_pinjam }}</td>
-            <td>{{ p.status }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% else %}
-      <p><em>Belum ada riwayat peminjaman.</em></p>
-    {% endif %}
-  </section>
-</body>
-</html>
+{# Modal tolak warga #}
+{% if warga.status == 'menunggu' %}
+{% call render_modal('modal-tolak-warga', 'Tolak Pendaftaran Warga', variant='danger') %}
+  <form id="modal-tolak-warga-form" method="post" action="{{ url_for('admin_warga.reject', warga_id=warga.id) }}">
+    {{ reject_form.csrf_token }}
+    <div class="mb-4">
+      <label for="alasan" class="block text-sm font-medium text-gray-700 mb-1">
+        Alasan Penolakan <span class="text-red-500">*</span>
+      </label>
+      <textarea name="alasan" id="alasan" rows="3" required
+                placeholder="Jelaskan alasan penolakan pendaftaran ini..."
+                class="w-full px-4 py-2.5 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors"></textarea>
+      <p class="mt-1 text-xs text-gray-500">Alasan wajib diisi (minimal 5 karakter).</p>
+    </div>
+  </form>
+  <div class="bg-gray-50 -mx-6 -mb-4 px-6 py-3 border-t border-gray-100 flex justify-end space-x-3 rounded-b-xl">
+    <button type="button" data-modal-close class="px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors font-medium text-sm">Batal</button>
+    <button type="submit" form="modal-tolak-warga-form" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium text-sm">Tolak Pendaftaran</button>
+  </div>
+{% endcall %}
+{% endif %}
+{% endblock %}

@@ -10,12 +10,13 @@ Dashboard menampilkan:
   - Tabel 5 peminjaman terbaru
   - Panel notifikasi terbaru
 
-Catatan scope (§3.4 / T-FE-14):
-  Data saat ini masih DUMMY (konteks statis). Integrasi real dengan
-  ``LaporanService.get_statistik_dashboard()`` akan dilakukan di M3 §4.2
-  (task T-UI-03 / T-UI-17). Lihat handoff-frontend Q-11.
+Integrasi data real (T-UI-03 / T-UI-17):
+  - Admin: ``LaporanService.get_statistik_dashboard()`` + 5 peminjaman
+    terbaru global + notifikasi seluruh sistem (di-scope per role).
+  - Warga: ``LaporanService.get_statistik_warga()`` + 5 peminjaman
+    terbaru milik user + notifikasi milik user.
 
-Refs: TODO T-FE-14, UI Spec SCR-03, handoff Q-11
+Refs: TODO T-FE-14 & T-UI-03/T-UI-17, UI Spec SCR-03, handoff Q-11
 """
 from flask import (
     Blueprint,
@@ -26,9 +27,25 @@ from flask import (
 )
 
 from controllers.decorators import login_required
+from models.peminjaman import Peminjaman
+from services.laporan_service import LaporanService
+from services.notifikasi_service import NotifikasiService
 
 
 dashboard_bp = Blueprint("dashboard", __name__)
+_laporan_service = LaporanService()
+_notifikasi_service = NotifikasiService()
+
+
+def _format_peminjaman_row(p: Peminjaman) -> dict:
+    """Format satu Peminjaman menjadi row untuk tabel dashboard."""
+    return {
+        "id": p.id,
+        "kode": p.kode_peminjaman,
+        "peminjam": p.warga.nama_lengkap if p.warga else "-",
+        "tgl_pinjam": p.tanggal_pinjam.isoformat() if p.tanggal_pinjam else "-",
+        "status": p.status,
+    }
 
 
 @dashboard_bp.route("/")
@@ -46,45 +63,53 @@ def root():
 def index():
     """Halaman dashboard utama (SCR-03).
 
-    Render dengan DUMMY context. Data real akan dikirim oleh
-    LaporanService.get_statistik_dashboard() setelah M3 §4.2 selesai.
+    Data real dari ``LaporanService`` + ``NotifikasiService``.
+    Admin lihat global; warga lihat pribadi.
     """
     role = session.get("role", "warga")
+    user_id = session.get("user_id")
 
-    # ── DUMMY DATA (TODO: ganti dengan LaporanService.get_statistik_dashboard()) ──
-    # Lihat handoff-frontend Q-11 & TODO T-UI-03.
-    stats = {
-        "total_barang": 24,
-        "tersedia": 18,
-        "peminjaman_aktif": 4,
-        "terlambat": 2,
-    }
+    # ── Statistik ─────────────────────────────────────────────
     if role == "admin":
-        stats["warga_terdaftar"] = 12
+        stats = _laporan_service.get_statistik_dashboard()
+        # Tambahkan kategori "tersedia" (barang berstatus 'tersedia')
+        from models.barang import Barang
 
-    recent_peminjaman = [
-        {"kode": "PJM-2026-0001", "peminjam": "Budi Santoso",
-         "tgl_pinjam": "2026-07-05", "status": "dipinjam"},
-        {"kode": "PJM-2026-0002", "peminjam": "Siti Aminah",
-         "tgl_pinjam": "2026-07-06", "status": "diajukan"},
-        {"kode": "PJM-2026-0003", "peminjam": "Ahmad Yani",
-         "tgl_pinjam": "2026-07-04", "status": "terlambat"},
-        {"kode": "PJM-2026-0004", "peminjam": "Dewi Lestari",
-         "tgl_pinjam": "2026-07-03", "status": "dikembalikan"},
-        {"kode": "PJM-2026-0005", "peminjam": "Rudi Hartono",
-         "tgl_pinjam": "2026-07-02", "status": "disetujui"},
-    ]
+        stats["tersedia"] = (
+            Barang.query.filter(Barang.deleted_at.is_(None))
+            .filter(Barang.status == "tersedia")
+            .count()
+        )
+    else:
+        stat_warga = _laporan_service.get_statistik_warga(user_id)
+        # Samakan shape dengan admin agar template tetap konsisten
+        stats = {
+            "peminjaman_aktif": stat_warga["peminjaman_aktif"],
+            "terlambat": stat_warga["peminjaman_terlambat"],
+            "peminjaman_riwayat": stat_warga["peminjaman_riwayat"],
+        }
 
+    # ── 5 Peminjaman terbaru ──────────────────────────────────
+    query = Peminjaman.query
+    if role != "admin":
+        query = query.filter(Peminjaman.warga_id == user_id)
+    recent = (
+        query.order_by(Peminjaman.created_at.desc()).limit(5).all()
+    )
+    recent_peminjaman = [_format_peminjaman_row(p) for p in recent]
+
+    # ── Notifikasi terbaru (3-5 item, milik user) ────────────
+    notif_list = _notifikasi_service.get_by_warga(user_id)[:5]
     notifications = [
-        {"tipe": "pengingat", "judul": "Jatuh tempo besok",
-         "pesan": "Peminjaman PJM-2026-0001 jatuh tempo 2026-07-08.",
-         "timestamp": "2 jam lalu", "unread": True},
-        {"tipe": "info", "judul": "Peminjaman baru",
-         "pesan": "Siti Aminah mengajukan peminjaman PJM-2026-0002.",
-         "timestamp": "5 jam lalu", "unread": True},
-        {"tipe": "peringatan", "judul": "Terlambat",
-         "pesan": "PJM-2026-0003 sudah 2 hari terlambat.",
-         "timestamp": "1 hari lalu", "unread": False},
+        {
+            "id": n.id,
+            "tipe": n.tipe,
+            "judul": n.judul,
+            "pesan": n.pesan,
+            "timestamp": n.created_at.strftime("%d %b %Y, %H:%M"),
+            "unread": not n.is_dibaca,
+        }
+        for n in notif_list
     ]
 
     return render_template(
@@ -92,4 +117,5 @@ def index():
         stats=stats,
         recent_peminjaman=recent_peminjaman,
         notifications=notifications,
+        unread_count=_notifikasi_service.get_unread_count(user_id),
     )

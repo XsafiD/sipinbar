@@ -1,94 +1,155 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8">
-  <title>Daftar Peminjaman — SIPINBAR</title>
-  <!--
-    STUB template (M3 §4.1) — versi minimal fungsional.
-    Akan digantikan oleh T-UI-07 (UI Spec SCR-08) dengan layout
-    base.html + komponen table/badge/pagination.
-  -->
-  <style>
-    body { font-family: sans-serif; padding: 20px; }
-    .flash { padding: 8px 12px; margin: 8px 0; border-radius: 4px; }
-    .flash.error { background: #fee2e2; border: 1px solid #ef4444; }
-    .flash.success { background: #dcfce7; border: 1px solid #22c55e; }
-    .flash.info { background: #dbeafe; border: 1px solid #3b82f6; }
-    .flash.warning { background: #fef3c7; border: 1px solid #f59e0b; }
-    form.filter { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0; align-items: center; }
-    table { width: 100%; border-collapse: collapse; margin-top: 16px; }
-    th, td { padding: 8px; border-bottom: 1px solid #e5e7eb; text-align: left; }
-    th { background: #f3f4f6; }
-    .badge { padding: 2px 8px; border-radius: 12px; font-size: 12px; }
-    .badge.diajukan { background: #fef3c7; color: #b45309; }
-    .badge.disetujui { background: #dcfce7; color: #15803d; }
-    .badge.ditolak { background: #fee2e2; color: #b91c1c; }
-    .badge.dipinjam { background: #dbeafe; color: #1d4ed8; }
-    .badge.terlambat { background: #fee2e2; color: #b91c1c; }
-    .badge.dikembalikan { background: #e5e7eb; color: #6b7280; }
-    a.button { display: inline-block; padding: 4px 10px; background: #2563eb; color: white; text-decoration: none; border-radius: 4px; }
-    a.button.tambah { background: #16a34a; }
-    select, input[type=text] { padding: 4px 8px; border: 1px solid #d1d5db; border-radius: 4px; }
-  </style>
-</head>
-<body>
-  <h1>Daftar Peminjaman</h1>
+{# templates/peminjaman/index.html
 
-  {% with messages = get_flashed_messages(with_categories=true) %}
-    {% if messages %}
-      {% for category, message in messages %}
-        <div class="flash {{ category }}">{{ message }}</div>
-      {% endfor %}
-    {% endif %}
-  {% endwith %}
+  Daftar Peminjaman (SCR-08). Sesuai UI Spec SCR-08 & mockup
+  `daftar_peminjaman_sipinbar.html`.
 
-  <form class="filter" method="get">
-    <input type="text" name="q" placeholder="Cari kode peminjaman..." value="{{ q_filter }}">
-    <select name="status">
-      <option value="">Semua status</option>
-      {% for s in status_options %}
-        <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s | replace('_',' ') | title }}</option>
-      {% endfor %}
-    </select>
-    <button type="submit">Filter</button>
-    {% if session.get('role') == 'warga' %}
-      <a class="button tambah" href="{{ url_for('peminjaman.ajukan') }}">+ Ajukan Peminjaman</a>
-    {% endif %}
-  </form>
+  Fitur:
+    - Filter status (tabs): semua, diajukan, disetujui, dipinjam,
+      terlambat, dikembalikan, ditolak
+    - Tabel: kode, warga (admin view), barang (ringkas), tanggal,
+      status badge, aksi
+    - Warga hanya lihat miliknya; admin lihat semua
 
-  {% if peminjaman_list %}
-    <table>
+  Context dari controller:
+    - peminjaman_list:  list[Peminjaman]
+    - status_filter:    str
+    - q_filter:         str
+    - status_options:   tuple STATUS_PEMINJAMAN
+
+  Refs: TODO T-UI-07, UI Spec SCR-08, mockup daftar_peminjaman_sipinbar.html
+#}
+{% extends "base.html" %}
+{% from "components/badge.html" import render_badge %}
+{% from "components/card.html" import render_card %}
+
+{% block title %}Daftar Peminjaman — SIPINBAR{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Daftar Peminjaman</h1>
+    <p class="text-sm text-gray-500 mt-1">
+      {% if session.get('role') == 'admin' %}
+        Kelola semua pengajuan peminjaman barang.
+      {% else %}
+        Riwayat dan status peminjaman Anda.
+      {% endif %}
+    </p>
+  </div>
+  {% if session.get('role') == 'warga' %}
+  <a href="{{ url_for('peminjaman.ajukan') }}" class="inline-flex items-center justify-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
+    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+    </svg>
+    Ajukan Peminjaman
+  </a>
+  {% endif %}
+</div>
+
+{# ── Filter tabs (status) ───────────────────────────────────── #}
+<div class="bg-white p-3 rounded-xl shadow-sm border border-gray-100 mb-6 overflow-x-auto">
+  <div class="flex items-center space-x-1 min-w-max">
+    <a href="{{ url_for('peminjaman.index', q=q_filter) }}"
+       class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {{ 'bg-brand-600 text-white' if not status_filter else 'text-gray-600 hover:bg-gray-100' }}">
+      Semua
+    </a>
+    {% for s in status_options %}
+    <a href="{{ url_for('peminjaman.index', status=s, q=q_filter) }}"
+       class="px-3 py-1.5 rounded-md text-sm font-medium transition-colors {{ 'bg-brand-600 text-white' if status_filter == s else 'text-gray-600 hover:bg-gray-100' }}">
+      {{ s | replace('_', ' ') | title }}
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+{# ── Search bar #}
+<form method="get" action="{{ url_for('peminjaman.index') }}" class="mb-4">
+  {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+  <div class="relative max-w-md">
+    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+      <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+      </svg>
+    </div>
+    <input type="text" name="q" value="{{ q_filter }}" placeholder="Cari kode peminjaman (mis. PJM-2026-0001)..."
+           class="pl-10 w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+  </div>
+</form>
+
+{# ── Tabel peminjaman ───────────────────────────────────────── #}
+{% call render_card() %}
+  <div class="overflow-x-auto">
+    <table class="w-full text-left border-collapse">
       <thead>
-        <tr>
-          <th>Kode</th>
-          <th>{% if session.get('role') == 'admin' %}Warga{% else %}Barang{% endif %}</th>
-          <th>Tanggal Pinjam</th>
-          <th>Tanggal Kembali</th>
-          <th>Status</th>
-          <th>Aksi</th>
+        <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
+          <th class="px-4 py-3 font-medium">Kode</th>
+          {% if session.get('role') == 'admin' %}
+          <th class="px-4 py-3 font-medium">Warga</th>
+          {% endif %}
+          <th class="px-4 py-3 font-medium">Barang</th>
+          <th class="px-4 py-3 font-medium">Tgl Pinjam</th>
+          <th class="px-4 py-3 font-medium">Jatuh Tempo</th>
+          <th class="px-4 py-3 font-medium">Status</th>
+          <th class="px-4 py-3 font-medium text-right">Aksi</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="text-sm text-gray-700 divide-y divide-gray-100">
         {% for p in peminjaman_list %}
-        <tr>
-          <td>{{ p.kode_peminjaman }}</td>
-          <td>
-            {% if session.get('role') == 'admin' %}
-              {{ p.warga.nama_lengkap }}
-            {% else %}
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="px-4 py-3 font-mono text-xs text-gray-700">{{ p.kode_peminjaman }}</td>
+          {% if session.get('role') == 'admin' %}
+          <td class="px-4 py-3">{{ p.warga.nama_lengkap if p.warga else '-' }}</td>
+          {% endif %}
+          <td class="px-4 py-3 text-xs text-gray-600">
+            {% if p.detail_list %}
               {{ p.detail_list | map(attribute='barang.nama') | join(', ') }}
+              {% if p.detail_list | length > 1 %}
+              <span class="text-gray-400">({{ p.detail_list | length }} item)</span>
+              {% endif %}
+            {% else %}
+              <span class="text-gray-400">-</span>
             {% endif %}
           </td>
-          <td>{{ p.tanggal_pinjam.isoformat() }}</td>
-          <td>{{ p.tanggal_kembali_rencana.isoformat() }}</td>
-          <td><span class="badge {{ p.status }}">{{ p.get_status_display() }}</span></td>
-          <td><a class="button" href="{{ url_for('peminjaman.detail', peminjaman_id=p.id) }}">Detail</a></td>
+          <td class="px-4 py-3 text-xs">{{ p.tanggal_pinjam.isoformat() if p.tanggal_pinjam else '-' }}</td>
+          <td class="px-4 py-3 text-xs {{ 'text-red-600 font-medium' if p.status == 'terlambat' else '' }}">
+            {{ p.tanggal_kembali_rencana.isoformat() if p.tanggal_kembali_rencana else '-' }}
+          </td>
+          <td class="px-4 py-3">{{ render_badge(p.status) }}</td>
+          <td class="px-4 py-3 text-right">
+            <a href="{{ url_for('peminjaman.detail', peminjaman_id=p.id) }}"
+               class="inline-flex items-center text-brand-600 hover:text-brand-700 text-sm font-medium">
+              Detail
+              <svg class="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{% if session.get('role') == 'admin' %}7{% else %}6{% endif %}" class="px-6 py-12 text-center text-gray-400">
+            <div class="flex flex-col items-center">
+              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
+              </svg>
+              <p class="text-sm">
+                {% if q_filter or status_filter %}
+                  Tidak ada peminjaman dengan filter ini.
+                {% else %}
+                  Belum ada peminjaman.
+                {% endif %}
+              </p>
+              {% if session.get('role') == 'warga' and not q_filter and not status_filter %}
+              <a href="{{ url_for('peminjaman.ajukan') }}" class="mt-3 inline-flex items-center px-3 py-1.5 text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 rounded-lg transition-colors">
+                Ajukan Peminjaman
+              </a>
+              {% endif %}
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
-  {% else %}
-    <p><em>Belum ada peminjaman dengan filter ini.</em></p>
-  {% endif %}
-</body>
-</html>
+  </div>
+{% endcall %}
+{% endblock %}
