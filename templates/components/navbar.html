@@ -11,7 +11,27 @@
   Refs: TODO T-FE-05, design-system §7.1, spec-komponen §1
 #}
 {% macro render_navbar(title=None, actions=None) %}
-{% set current_title = title or (request.endpoint | title if request.endpoint else 'SIPINBAR') %}
+{# Mapping endpoint Flask → judul manusiawi. Sebelumnya fallback pakai
+   `request.endpoint | title` yang menghasilkan "Dashboard.index" dll.
+   (Review UI v1.0.0-rc Isu #1 — CRITICAL). #}
+{% set _endpoint_titles = {
+    'dashboard.index': 'Dashboard',
+    'barang.index': 'Katalog Barang',
+    'barang.detail': 'Detail Barang',
+    'barang.tambah': 'Tambah Barang',
+    'barang.edit': 'Edit Barang',
+    'peminjaman.index': 'Daftar Peminjaman',
+    'peminjaman.detail': 'Detail Peminjaman',
+    'peminjaman.ajukan': 'Ajukan Peminjaman',
+    'peminjaman.kembalikan': 'Proses Pengembalian',
+    'admin_warga.index': 'Daftar Warga',
+    'admin_warga.detail': 'Detail Warga',
+    'laporan.index': 'Pusat Laporan',
+    'laporan.peminjaman': 'Laporan Peminjaman',
+    'laporan.inventaris': 'Laporan Inventaris',
+    'laporan.notifikasi': 'Notifikasi',
+} %}
+{% set current_title = title or _endpoint_titles.get(request.endpoint) or 'SIPINBAR' %}
 {% set user_name = session.get('nama', 'User') %}
 {% set user_role = session.get('role', 'warga') %}
 {% set unread = session.get('unread_count', 0) %}
