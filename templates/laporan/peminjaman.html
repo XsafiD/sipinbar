@@ -11,8 +11,6 @@
   Context dari controller:
     - data:           dict {rows, summary, metadata}
     - mulai_filter, selesai_filter, status_filter: str
-
-  Refs: TODO T-UI-14, UI Spec SCR-15, mockup laporan_peminjaman_sipinbar.html
 #}
 {% extends "base.html" %}
 {% from "components/badge.html" import render_badge %}
@@ -109,7 +107,7 @@
       <thead>
         <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider">
           <th class="px-4 py-3 font-medium">Kode</th>
-          <th class="px-4 py-3 font-medium">Warga ID</th>
+          <th class="px-4 py-3 font-medium">Peminjam</th>
           <th class="px-4 py-3 font-medium">Tgl Pinjam</th>
           <th class="px-4 py-3 font-medium">Rencana Kembali</th>
           <th class="px-4 py-3 font-medium">Status</th>
@@ -120,7 +118,7 @@
         {% for row in data.rows %}
         <tr class="hover:bg-gray-50 transition-colors">
           <td class="px-4 py-3 font-mono text-xs">{{ row.kode_peminjaman }}</td>
-          <td class="px-4 py-3 text-xs text-gray-500 font-mono">{{ row.warga_id[:8] }}…</td>
+          <td class="px-4 py-3 text-xs text-gray-700">{{ row.nama_peminjam or '-' }}</td>
           <td class="px-4 py-3 text-xs">{{ row.tanggal_pinjam }}</td>
           <td class="px-4 py-3 text-xs">{{ row.tanggal_kembali_rencana }}</td>
           <td class="px-4 py-3">{{ render_badge(row.status) }}</td>

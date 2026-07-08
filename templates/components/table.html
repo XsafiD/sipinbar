@@ -9,7 +9,6 @@
     - sortable: bool (opsional, default False)
     - render: callable(row) -> string HTML (opsional, untuk custom cell)
 
-  Refs: TODO T-FE-08, design-system §9, spec-komponen §4
 #}
 {% macro render_table(columns, rows, sort_key=None, sort_dir='asc', empty_message='Belum ada data.') %}
 <div class="overflow-x-auto">

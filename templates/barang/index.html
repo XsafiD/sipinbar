@@ -13,8 +13,6 @@
     - barang_list:    list[Barang]
     - kategori_list:  list[Kategori]
     - q_filter, kategori_filter, status_filter: string
-
-  Refs: TODO T-UI-04, UI Spec SCR-04, mockup katalog_barang_sipinbar.html
 #}
 {% extends "base.html" %}
 {% from "components/badge.html" import render_badge %}
@@ -75,7 +73,7 @@
       <a href="{{ url_for('barang.index') }}" class="text-sm text-gray-600 hover:text-gray-800 px-3 py-1.5 rounded-md hover:bg-gray-100 transition-colors">Reset</a>
       {% endif %}
       <button type="submit" class="px-4 py-1.5 bg-brand-600 text-white rounded-md hover:bg-brand-700 text-sm font-medium transition-colors">
-        Filter
+        Terapkan Filter
       </button>
     </div>
   </div>
@@ -137,7 +135,7 @@
   <h3 class="text-lg font-semibold text-gray-800 mb-1">Belum ada barang</h3>
   <p class="text-sm text-gray-500 mb-4">
     {% if q_filter or kategori_filter or status_filter %}
-      Tidak ada barang yang cocok dengan filter ini.
+      Tidak ada barang untuk filter ini.
     {% else %}
       Katalog barang masih kosong.
     {% endif %}
@@ -151,7 +149,7 @@
   </a>
   {% else %}
   <a href="{{ url_for('barang.index') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
-    Reset Filter
+    Reset
   </a>
   {% endif %}
 </div>

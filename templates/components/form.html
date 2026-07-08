@@ -7,7 +7,6 @@
 
   Kompatibel dengan Flask-WTF: pass form.errors ke parameter `error` per field.
 
-  Refs: TODO T-FE-09, design-system §3 & §9, spec-komponen §5, handoff Q-10
 #}
 {% macro render_field(name, label, type='text', value='', placeholder='', required=False, help='', error='', options=None, icon_path=None) %}
 <div class="{% if type == 'file' %}mb-4{% else %}mb-5{% endif %}">

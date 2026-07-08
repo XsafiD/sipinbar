@@ -226,10 +226,12 @@ class Peminjaman(db.Model):
         return mapping.get(self.status, self.status.title())
 
     def to_dict(self) -> dict:
+        """Serialisasi data peminjaman ke dict (untuk laporan & ekspor CSV)."""
         return {
             "id": self.id,
             "kode_peminjaman": self.kode_peminjaman,
             "warga_id": self.warga_id,
+            "nama_peminjam": self.warga.nama_lengkap if self.warga else None,
             "approved_by_admin_id": self.approved_by_admin_id,
             "tanggal_pinjam": self.tanggal_pinjam.isoformat(),
             "tanggal_kembali_rencana": self.tanggal_kembali_rencana.isoformat(),

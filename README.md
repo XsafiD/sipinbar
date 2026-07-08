@@ -6,7 +6,7 @@
 
 **Mata Kuliah** — Pemrograman Berorientasi Object (OOP) · Semester 4 Informatika
 **Tech Stack** — Python 3.12 · Flask 3.0 · Flask-SQLAlchemy · SQLite · Tailwind CSS · Jinja2
-**Versi** — 0.1.0 (M1 — Foundation)
+**Versi** — 1.0.0-rc (M4 selesai · M5 code freeze)
 
 ---
 
@@ -46,14 +46,14 @@ persetujuan admin, pengembalian, denda keterlambatan, hingga pelaporan.
 
 | Modul | Fitur | Status |
 |:---|:---|:---:|
-| **Autentikasi** | Login/logout, registrasi warga, verifikasi admin, hashing password | M2 |
-| **Inventaris** | CRUD barang, kategori, status ketersediaan, upload foto | M2 |
-| **Peminjaman** | Ajukan pinjaman, setujui/tolak, kembalikan, validasi anti double-booking | M3 |
-| **Pencarian** | Cari barang, filter kategori, cek ketersediaan | M2 |
-| **Warga** | Registrasi, verifikasi, riwayat peminjaman | M2 |
-| **Dashboard** | Statistik ringkas, peminjaman aktif, jumlah barang | M4 |
-| **Notifikasi** | In-app notification pengingat pengembalian H-1 | M4 |
-| **Laporan** | Laporan peminjaman per periode, ekspor sederhana | M4 |
+| **Autentikasi** | Login/logout, registrasi warga, verifikasi admin, hashing password | ✅ |
+| **Inventaris** | CRUD barang, kategori, status ketersediaan, upload foto | ✅ |
+| **Peminjaman** | Ajukan pinjaman, setujui/tolak, kembalikan, validasi anti double-booking | ✅ |
+| **Pencarian** | Cari barang, filter kategori, cek ketersediaan | ✅ |
+| **Warga** | Registrasi, verifikasi, riwayat peminjaman | ✅ |
+| **Dashboard** | Statistik ringkas, peminjaman aktif, jumlah barang | ✅ |
+| **Notifikasi** | In-app notification pengingat pengembalian H-1 | ✅ |
+| **Laporan** | Laporan peminjaman & inventaris per periode, ekspor CSV | ✅ |
 
 **Pengguna target:**
 
@@ -130,10 +130,24 @@ sipinbar/
 │   ├── notifikasi.py            # Class Notifikasi + NotifikasiInApp
 │   └── laporan.py               # Class LaporanPeminjaman + LaporanInventaris
 │
-├── services/                    # ══ SERVICE LAYER ══ (M2-M4)
-├── controllers/                 # ══ CONTROLLER LAYER ══ (M2-M4)
+├── services/                    # ══ SERVICE LAYER ══
+│   ├── auth_service.py          # Login, logout, session
+│   ├── warga_service.py         # Registrasi, verifikasi, blokir warga
+│   ├── barang_service.py        # CRUD barang + kategori
+│   ├── peminjaman_service.py    # Ajukan, setujui, tolak, kembalikan
+│   ├── notifikasi_service.py    # Generate & kirim notifikasi
+│   └── laporan_service.py       # Generate & export laporan
 │
-├── templates/                   # ══ VIEW LAYER ══ (M2-M4)
+├── controllers/                 # ══ CONTROLLER LAYER ══
+│   ├── auth_controller.py       # Blueprint /auth
+│   ├── barang_controller.py     # Blueprint /barang
+│   ├── peminjaman_controller.py # Blueprint /peminjaman
+│   ├── warga_controller.py      # Blueprint /admin/warga
+│   ├── laporan_controller.py    # Blueprint /laporan
+│   ├── dashboard_controller.py  # Blueprint / (dashboard)
+│   └── decorators.py            # login_required, role_required
+│
+├── templates/                   # ══ VIEW LAYER ══
 │   ├── auth/ barang/ peminjaman/ warga/ laporan/ components/
 │
 ├── static/                      # ══ ASSETS ══
@@ -193,6 +207,9 @@ flask run
 | Peran | Username | Password |
 |:---|:---|:---|
 | Admin | `admin` | `admin123` |
+
+Akun warga tidak di-seed — daftar via halaman registrasi (`/auth/register`),
+lalu diverifikasi admin untuk mendapatkan password awal.
 
 > **PENTING:** Ganti password admin default di production via interface admin
 > atau dengan re-seed menggunakan `python seed.py --reset`.
@@ -328,15 +345,21 @@ pytest tests/ -k "polymorphism" # filter by keyword
 pytest tests/ --tb=short        # traceback ringkas
 ```
 
-### Cakupan test saat ini (M1 — Foundation)
+### Cakupan test saat ini (v1.0.0-rc — M4 selesai)
 
-- Application factory & test client
-- Pembuatan semua tabel via `db.create_all()`
-- Password hashing (Werkzeug)
-- Polymorphism denda per kategori
-- Contract enforcement (NotImplementedError dari mixin)
-- UNIQUE & FK constraint enforcement
+**244 test** lintas 7 file test — semua lulus, flake8 bersih.
+
+- Application factory, test client, dan konfigurasi in-memory DB
+- Password hashing & auth (login/logout, role-based access)
 - State machine warga (verifikasi → blokir → aktifkan)
+- State machine peminjaman (diajukan → disetujui → dipinjam → dikembalikan/terlambat)
+- Anti double-booking & validasi denda keterlambatan
+- Polymorphism denda per kategori (Elektronik/Furniture/Peralatan)
+- Contract enforcement (NotImplementedError dari mixin/ABC)
+- UNIQUE, FK, CHECK constraint enforcement
+- Notifikasi in-app (pengingat H-1, tandai dibaca)
+- Laporan peminjaman & inventaris + export CSV (BOM UTF-8)
+- End-to-end flow (FR-01 s/d FR-06) via Flask test client
 
 ---
 
@@ -347,12 +370,12 @@ Mengikuti milestone yang didefinisikan di PRD:
 | Milestone | Konten | Status |
 |:---|:---|:---:|
 | **M1 — Foundation** | Setup project, base class, config, database, app skeleton | ✅ **Selesai** |
-| **M2 — Core Modules** | Autentikasi + Inventaris Barang | ⏳ Berikutnya |
-| **M3 — Peminjaman** | Modul peminjaman & pengembalian | ⏳ |
-| **M4 — UI & Reports** | Dashboard, laporan, notifikasi | ⏳ |
-| **M5 — Integration** | Merge semua modul, testing, bug fixing | ⏳ |
+| **M2 — Core Modules** | Autentikasi + Inventaris Barang | ✅ **Selesai** |
+| **M3 — Peminjaman** | Modul peminjaman & pengembalian | ✅ **Selesai** |
+| **M4 — UI & Reports** | Dashboard, laporan, notifikasi, QA (flake8/mypy/security) | ✅ **Selesai** (tag `v1.0.0-rc`) |
+| **M5 — Integration** | Code freeze, polish UI, dokumentasi, final release | ⏳ Berlangsung |
 
-Target rilis: **v1.0** — integrasi penuh + testing + bug fixing.
+Target rilis: **v1.0.0** — code freeze & dokumentasi final.
 
 ---
 

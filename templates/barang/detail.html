@@ -15,8 +15,6 @@
   Context dari controller:
     - barang:        Barang
     - confirm_form:  ConfirmForm (CSRF untuk hapus)
-
-  Refs: TODO T-UI-05, UI Spec SCR-05, mockup detail_barang_sipinbar.html
 #}
 {% extends "base.html" %}
 {% from "components/badge.html" import render_badge %}
@@ -55,13 +53,7 @@
 
       <div class="flex flex-wrap items-center gap-2 mb-4">
         {{ render_badge(barang.status) }}
-        {% if barang.kondisi == 'baik' %}
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Kondisi: Baik</span>
-        {% elif barang.kondisi == 'perlu_perbaikan' %}
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Kondisi: Perlu Perbaikan</span>
-        {% elif barang.kondisi == 'rusak' %}
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Kondisi: Rusak</span>
-        {% endif %}
+        {{ render_badge(barang.kondisi) }}
       </div>
 
       {# Aksi #}
@@ -97,7 +89,7 @@
         {% endif %}
 
         <a href="{{ url_for('barang.index') }}" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
-          Kembali ke Katalog
+          Kembali
         </a>
       </div>
     {% endcall %}

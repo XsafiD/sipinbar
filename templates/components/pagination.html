@@ -6,7 +6,6 @@
   Query string preservation: argumen `query_args` dilewatkan ke url_for sebagai
   **q, sehingga filter/search tidak hilang saat pindah halaman.
 
-  Refs: TODO T-FE-12, design-system §8, spec-komponen §8, audit GAP-04
 #}
 {% macro render_pagination(page, total_pages, endpoint, query_args=None) %}
 {% if total_pages and total_pages > 1 %}

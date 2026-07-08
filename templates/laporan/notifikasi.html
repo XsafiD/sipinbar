@@ -15,8 +15,6 @@
     - unread_count:  int
     - only_unread:   bool
     - confirm_form:  ConfirmForm (CSRF)
-
-  Refs: TODO T-UI-16, UI Spec SCR-17, mockup halaman_notifikasi_sipinbar.html
 #}
 {% extends "base.html" %}
 {% from "components/badge.html" import render_badge %}
@@ -153,7 +151,7 @@
     {% if only_unread %}
       Tidak ada notifikasi belum dibaca.
     {% else %}
-      Anda belum memiliki notifikasi.
+      Belum ada notifikasi.
     {% endif %}
   </p>
 </div>

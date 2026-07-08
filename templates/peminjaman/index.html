@@ -15,8 +15,6 @@
     - status_filter:    str
     - q_filter:         str
     - status_options:   tuple STATUS_PEMINJAMAN
-
-  Refs: TODO T-UI-07, UI Spec SCR-08, mockup daftar_peminjaman_sipinbar.html
 #}
 {% extends "base.html" %}
 {% from "components/badge.html" import render_badge %}
@@ -134,7 +132,7 @@
               </svg>
               <p class="text-sm">
                 {% if q_filter or status_filter %}
-                  Tidak ada peminjaman dengan filter ini.
+                  Tidak ada peminjaman untuk filter ini.
                 {% else %}
                   Belum ada peminjaman.
                 {% endif %}

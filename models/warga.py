@@ -127,6 +127,7 @@ class Warga(db.Model):
 
     # ── Utility ───────────────────────────────────────────────
     def to_dict(self) -> dict:
+        """Serialisasi data warga ke dict (tanpa password_hash)."""
         return {
             "id": self.id,
             "nik": self.nik,

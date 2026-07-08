@@ -12,8 +12,6 @@
   Context dari controller:
     - warga_list:    list[Warga]
     - status_filter: str
-
-  Refs: TODO T-UI-11, UI Spec SCR-12, mockup daftar_warga_sipinbar.html
 #}
 {% extends "base.html" %}
 {% from "components/badge.html" import render_badge %}
@@ -94,7 +92,7 @@
               </svg>
               <p class="text-sm">
                 {% if status_filter %}
-                  Tidak ada warga berstatus {{ status_filter }}.
+                  Tidak ada warga untuk filter ini.
                 {% else %}
                   Belum ada warga terdaftar.
                 {% endif %}

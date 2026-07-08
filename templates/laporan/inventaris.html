@@ -11,8 +11,6 @@
   Context dari controller:
     - data:            dict {rows, summary, metadata}
     - include_deleted: bool
-
-  Refs: TODO T-UI-15, UI Spec SCR-16, mockup laporan_inventaris_sipinbar.html
 #}
 {% extends "base.html" %}
 {% from "components/badge.html" import render_badge %}
@@ -53,26 +51,26 @@
       <span class="ml-2 text-sm text-gray-700">Tampilkan barang yang sudah dihapus (soft delete)</span>
     </label>
     <button type="submit" class="px-4 py-1.5 bg-brand-600 text-white rounded-md hover:bg-brand-700 text-sm font-medium transition-colors">
-      Terapkan
+      Terapkan Filter
     </button>
   </div>
 </form>
 
 {# ── Summary #}
 {% set summary = data.summary or {} %}
+{% set dist_status = summary.distribusi_status or {} %}
+{% set dist_kondisi = summary.distribusi_kondisi or {} %}
 {% if summary %}
 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
   {{ render_stat_card('Total Jenis Barang', summary.total_jenis_barang or 0, color='blue',
     icon_path='M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4') }}
   {{ render_stat_card('Total Unit', summary.total_unit or 0, color='indigo',
     icon_path='M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10') }}
-  {{ render_stat_card('Status Berbeda', (summary.distribusi_status or {}) | length, color='emerald',
+  {{ render_stat_card('Barang Tersedia', dist_status.get('tersedia', 0), color='emerald',
     icon_path='M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z') }}
 </div>
 
 {# Distribusi kondisi & status #}
-{% set dist_kondisi = summary.distribusi_kondisi or {} %}
-{% set dist_status = summary.distribusi_status or {} %}
 {% if dist_kondisi or dist_status %}
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
   {% if dist_status %}
@@ -92,15 +90,7 @@
     <div class="flex flex-wrap gap-2">
       {% for k, count in dist_kondisi.items() %}
       <div class="inline-flex items-center space-x-2 bg-gray-50 rounded-lg px-3 py-2">
-        {% if k == 'baik' %}
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">Baik</span>
-        {% elif k == 'perlu_perbaikan' %}
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Perlu Perbaikan</span>
-        {% elif k == 'rusak' %}
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700">Rusak</span>
-        {% else %}
-        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700">{{ k | title }}</span>
-        {% endif %}
+        {{ render_badge(k) }}
         <span class="text-sm font-semibold text-gray-700">{{ count }}</span>
       </div>
       {% endfor %}
@@ -144,7 +134,7 @@
               <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
               </svg>
-              <p class="text-sm">Tidak ada data barang.</p>
+              <p class="text-sm">Tidak ada data barang untuk filter ini.</p>
             </div>
           </td>
         </tr>
