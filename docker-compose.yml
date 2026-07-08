@@ -1,0 +1,40 @@
+# ============================================================
+# docker-compose.yml — SIPINBAR (Demo/Grading Mode)
+# ============================================================
+# Usage:
+#   docker compose up -d --build   # build + start di background
+#   docker compose logs -f         # lihat log
+#   docker compose down            # stop & hapus container (data tetap)
+# ============================================================
+services:
+  sipinbar:
+    build: .
+    image: sipinbar:demo
+    container_name: sipinbar
+    ports:
+      - "5000:5000"
+    volumes:
+      # Persistensi SQLite database (lihat file .db langsung di host)
+      - ./database:/app/database
+      # Persistensi upload gambar barang
+      - ./static/img:/app/static/img
+    environment:
+      # Flask runtime
+      FLASK_APP: app.py
+      FLASK_DEBUG: "0"            # debug OFF di kontainer (hindari Werkzeug reloader)
+      # Secret — GANTI nilai ini untuk deployment sungguhan
+      SECRET_KEY: docker-demo-secret-key-ubah-untuk-production
+      # Path resource (relatif terhadap WORKDIR /app)
+      DATABASE_PATH: database/sipinbar.db
+      UPLOAD_FOLDER: static/img
+      MAX_CONTENT_LENGTH: "5242880"   # 5 MB
+    restart: unless-stopped
+    healthcheck:
+      # Pakai stdlib urllib (tidak perlu curl/wget di image)
+      test:
+        - "CMD-SHELL"
+        - "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:5000/health', timeout=3).status==200 else 1)\""
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s          # beri waktu seed.py + first boot

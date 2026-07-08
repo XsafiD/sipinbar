@@ -1,0 +1,71 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+
+# Virtual environment (local dev — JANGAN masuk image)
+venv/
+.venv/
+env/
+ENV/
+
+# Environment & secrets (diatur via compose, bukan file)
+.env
+.env.local
+.env.*.local
+.env.example
+.flaskenv
+
+# Git
+.git/
+.gitignore
+.gitmessage
+.github/
+
+# Database SQLite (akan di-bind-mount)
+*.db
+*.sqlite
+*.sqlite3
+database/*.db
+database/*.sqlite*
+database/backup/
+
+# Uploads (akan di-bind-mount)
+static/img/*
+!static/img/.gitkeep
+
+# Instance folder (tidak dipakai, config pakai absolute path)
+instance/
+
+# Testing & quality (tidak perlu di runtime)
+tests/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+.flake8
+mypy.ini
+
+# Dokumentasi & referensi (tidak perlu di runtime)
+docs/
+docs-sipinbar/
+ui-referensi-sipinbar/
+*.md
+*-sipinbar.md
+*-sipinbar/
+
+# File instruksi/project (bloat image)
+*.pdf
+Instruksi*
+
+# Editor / OS
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
