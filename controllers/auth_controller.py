@@ -2,9 +2,9 @@
 controllers/auth_controller.py — Blueprint ``auth_bp`` untuk modul Autentikasi.
 
 Routes:
-  - ``GET/POST /login``     — form & proses login (Admin/Warga)
-  - ``GET /logout``         — hapus session, redirect ke login
-  - ``GET/POST /register``  — form registrasi warga baru (self-service)
+  - ``GET/POST /login``             — form & proses login (Admin/Warga dengan username)
+  - ``GET /logout``                 — hapus session, redirect ke login
+  - ``GET/POST /change-password``   — ganti password untuk user yang sedang login
 
 Session contract (di-set di sini, dibaca oleh ``decorators``):
   - ``user_id``: ID user
@@ -14,22 +14,21 @@ Session contract (di-set di sini, dibaca oleh ``decorators``):
 Catatan scope:
   Setelah login sukses, user di-redirect ke ``/dashboard``. Endpoint
   ``/dashboard`` dikelola oleh ``dashboard_bp`` di
-  ``controllers/dashboard_controller.py`` (diimplementasi di T-FE-04,
-  section 3.4). Sebelum T-FE-04 selesai, placeholder pernah ada di sini
-  agar alur auth bisa dites — sekarang sudah dipindahkan.
+  ``controllers/dashboard_controller.py``.
 
-Refs: SRS §4.1.3 & §6.1, UI Spec SCR-01 & SCR-02, TODO T-AUTH-03
+Ref: SIPINBAR v2.0.0 - Username-based authentication, no self-registration
 """
 from flask import (
     Blueprint,
     flash,
     redirect,
     render_template,
+    request,
     session,
     url_for,
 )
 from flask_wtf import FlaskForm
-from wtforms import PasswordField, StringField, TextAreaField
+from wtforms import PasswordField, StringField
 from wtforms.validators import (
     DataRequired,
     Length,
@@ -37,16 +36,19 @@ from wtforms.validators import (
 )
 
 from controllers.decorators import login_required
+from models import db
+from models.admin import Admin
+from models.warga import Warga
 from services.auth_service import AuthService
 
 
 # ── Form Definitions (Flask-WTF: auto CSRF + validation) ──────
 class LoginForm(FlaskForm):
-    """Form login — identifier bisa username (admin) atau NIK (warga)."""
+    """Form login — username untuk admin & warga."""
 
     username = StringField(
-        "Username / NIK",
-        validators=[DataRequired(message="Username atau NIK wajib diisi")],
+        "Username",
+        validators=[DataRequired(message="Username wajib diisi")],
     )
     password = PasswordField(
         "Password",
@@ -54,43 +56,24 @@ class LoginForm(FlaskForm):
     )
 
 
-class RegisterForm(FlaskForm):
-    """Form registrasi warga — status awal selalu 'menunggu'."""
+class ChangePasswordForm(FlaskForm):
+    """Form ganti password — user yang sedang login."""
 
-    nik = StringField(
-        "NIK (16 digit)",
+    current_password = PasswordField(
+        "Password Saat Ini",
+        validators=[DataRequired(message="Password saat ini wajib diisi")],
+    )
+    new_password = PasswordField(
+        "Password Baru",
         validators=[
-            DataRequired(message="NIK wajib diisi"),
-            Length(min=16, max=16, message="NIK harus tepat 16 digit"),
-            Regexp(r"^\d{16}$", message="NIK harus 16 digit angka"),
+            DataRequired(message="Password baru wajib diisi"),
+            Length(min=6, max=72, message="Password minimal 6 karakter"),
         ],
     )
-    nama_lengkap = StringField(
-        "Nama Lengkap",
+    confirm_password = PasswordField(
+        "Konfirmasi Password Baru",
         validators=[
-            DataRequired(message="Nama lengkap wajib diisi"),
-            Length(max=100),
-        ],
-    )
-    alamat = TextAreaField(
-        "Alamat",
-        validators=[
-            DataRequired(message="Alamat wajib diisi"),
-            Length(max=500),
-        ],
-    )
-    telepon = StringField(
-        "No. Telepon",
-        validators=[
-            DataRequired(message="Telepon wajib diisi"),
-            Regexp(r"^\d{10,15}$", message="Format telepon: 10-15 digit angka"),
-        ],
-    )
-    rt_rw = StringField(
-        "RT/RW",
-        validators=[
-            DataRequired(message="RT/RW wajib diisi"),
-            Regexp(r"^\d{3}/\d{3}$", message="Format RT/RW: 001/002"),
+            DataRequired(message="Konfirmasi password wajib diisi"),
         ],
     )
 
@@ -103,7 +86,7 @@ _auth_service = AuthService()
 # ── Routes ────────────────────────────────────────────────────
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
-    """Form & proses login untuk admin maupun warga."""
+    """Form & proses login untuk admin maupun warga (username-based)."""
     form = LoginForm()
 
     if form.validate_on_submit():
@@ -112,7 +95,7 @@ def login():
 
         result = _auth_service.login(identifier, password)
         if result is None:
-            flash("Username/NIK atau password salah.", "error")
+            flash("Username atau password salah.", "error")
             return render_template("auth/login.html", form=form), 401
 
         user, role = result
@@ -123,7 +106,7 @@ def login():
         session["nama"] = user.nama_lengkap
 
         flash(f"Selamat datang, {user.nama_lengkap}!", "success")
-        # Redirect ke dashboard (dikelola oleh dashboard_bp, T-FE-04).
+        # Redirect ke dashboard (dikelola oleh dashboard_bp)
         return redirect(url_for("dashboard.index"))
 
     return render_template("auth/login.html", form=form)
@@ -138,30 +121,47 @@ def logout():
     return redirect(url_for("auth.login"))
 
 
-@auth_bp.route("/register", methods=["GET", "POST"])
-def register():
-    """Form registrasi warga baru (self-service)."""
-    form = RegisterForm()
+@auth_bp.route("/change-password", methods=["GET", "POST"])
+@login_required
+def change_password():
+    """
+    Form ganti password untuk user yang sedang login.
+
+    Tersedia untuk admin dan warga. Memerlukan password saat ini
+    untuk verifikasi sebelum mengubah ke password baru.
+    """
+    form = ChangePasswordForm()
 
     if form.validate_on_submit():
-        try:
-            warga = _auth_service.register_warga(
-                {
-                    "nik": form.nik.data,
-                    "nama_lengkap": form.nama_lengkap.data,
-                    "alamat": form.alamat.data,
-                    "telepon": form.telepon.data,
-                    "rt_rw": form.rt_rw.data,
-                }
-            )
-            flash(
-                f"Registrasi berhasil. NIK Anda ({warga.nik}) menunggu "
-                f"verifikasi admin.",
-                "success",
-            )
+        current_password = form.current_password.data
+        new_password = form.new_password.data
+        confirm_password = form.confirm_password.data
+
+        # Validasi konfirmasi password
+        if new_password != confirm_password:
+            flash("Password baru dan konfirmasi password tidak cocok.", "error")
+            return render_template("auth/change_password.html", form=form)
+
+        # Get current user
+        user_id = session.get("user_id")
+        role = session.get("role")
+
+        if role == "admin":
+            user = db.session.get(Admin, user_id)
+        else:  # warga
+            user = db.session.get(Warga, user_id)
+
+        if user is None:
+            session.clear()
+            flash("Sesi tidak valid. Silakan login kembali.", "error")
             return redirect(url_for("auth.login"))
+
+        # Try change password via service
+        try:
+            _auth_service.change_password(user, current_password, new_password)
+            flash("Password berhasil diubah.", "success")
+            return redirect(url_for("dashboard.index"))
         except ValueError as err:
-            # Pesan dari service (NIK duplikat, format salah, dll.)
             flash(str(err), "error")
 
-    return render_template("auth/register.html", form=form)
+    return render_template("auth/change_password.html", form=form)

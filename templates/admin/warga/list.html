@@ -1,0 +1,218 @@
+{# templates/admin/warga/list.html
+
+  Halaman Daftar Warga untuk admin.
+  Menampilkan semua warga dengan filter status (data_only, aktif, diblokir).
+
+  Ref: SIPINBAR v2.0.0 - Admin-controlled account management
+  UI Pattern: Referensi v1 (daftar_warga_sipinbar.html)
+#}
+{% extends "base.html" %}
+{% from "components/alert.html" import render_flashed %}
+{% from "components/badge.html" import render_badge %}
+{% from "components/card.html" import render_card %}
+
+{% block title %}Daftar Warga — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Page Header #}
+<div class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Daftar Warga</h1>
+    <p class="text-sm text-gray-500 mt-1">Kelola data dan akun warga desa</p>
+  </div>
+  <div class="flex gap-3">
+    <a href="{{ url_for('admin_warga.import_page') }}"
+       class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+      <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+      Import Bulk
+    </a>
+    <a href="{{ url_for('admin_warga.create') }}"
+       class="inline-flex items-center px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 transition-colors">
+      <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+      Tambah Warga
+    </a>
+  </div>
+</div>
+
+{# Filter Bar (F-12.1) - Pattern v1 with Enhanced UX #}
+<div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+
+  {# Active Filter Badges #}
+  {% if q_filter or status_filter or rt_filter %}
+  <div class="flex flex-wrap gap-2 mb-4">
+    {% if q_filter %}
+    <span class="inline-flex items-center px-3 py-1 bg-brand-50 text-brand-700 rounded-full text-xs font-medium border border-brand-200">
+      <svg class="w-3 h-3 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      Search: "{{ q_filter }}"
+      <a href="{{ url_for('admin_warga.index', status=status_filter, rt=rt_filter) }}" class="ml-1.5 hover:text-brand-900 font-bold">×</a>
+    </span>
+    {% endif %}
+    {% if status_filter %}
+    <span class="inline-flex items-center px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+      <svg class="w-3 h-3 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+      Status: {{ status_filter|replace('_', ' ')|title }}
+      <a href="{{ url_for('admin_warga.index', q=q_filter, rt=rt_filter) }}" class="ml-1.5 hover:text-blue-900 font-bold">×</a>
+    </span>
+    {% endif %}
+    {% if rt_filter %}
+    <span class="inline-flex items-center px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-medium border border-purple-200">
+      <svg class="w-3 h-3 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+      RT: {{ rt_filter }}
+      <a href="{{ url_for('admin_warga.index', q=q_filter, status=status_filter) }}" class="ml-1.5 hover:text-purple-900 font-bold">×</a>
+    </span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <form action="{{ url_for('admin_warga.index') }}" method="GET" class="flex flex-col md:flex-row gap-4">
+
+    {# Search by NIK/Nama #}
+    <div class="flex-1 relative">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+        <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+      </div>
+      <input type="text" name="q" value="{{ q_filter if q_filter else '' }}" placeholder="Cari NIK atau Nama Warga..."
+             class="pl-10 w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors">
+    </div>
+
+    {# Filter Status #}
+    <div class="w-full md:w-48">
+      <select name="status" onchange="this.form.submit()" class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors text-gray-700">
+        <option value="">Semua Status</option>
+        <option value="data_only" {{ 'selected' if status_filter == 'data_only' else '' }}>Data Only</option>
+        <option value="aktif" {{ 'selected' if status_filter == 'aktif' else '' }}>Aktif</option>
+        <option value="diblokir" {{ 'selected' if status_filter == 'diblokir' else '' }}>Diblokir</option>
+      </select>
+    </div>
+
+    {# Filter RT #}
+    <div class="w-full md:w-32">
+      <select name="rt" class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 outline-none transition-colors text-gray-700">
+        <option value="">Semua RT</option>
+        <option value="001" {{ 'selected' if rt_filter == '001' else '' }}>RT 001</option>
+        <option value="002" {{ 'selected' if rt_filter == '002' else '' }}>RT 002</option>
+        <option value="003" {{ 'selected' if rt_filter == '003' else '' }}>RT 003</option>
+        <option value="004" {{ 'selected' if rt_filter == '004' else '' }}>RT 004</option>
+        <option value="005" {{ 'selected' if rt_filter == '005' else '' }}>RT 005</option>
+      </select>
+    </div>
+
+    {# Reset Filter Button #}
+    {% if q_filter or status_filter or rt_filter %}
+    <a href="{{ url_for('admin_warga.index') }}"
+       class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+      <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+      Reset
+    </a>
+    {% endif %}
+  </form>
+</div>
+
+{# MAIN TABLE CONTAINER (F-12.3) - Pattern v1 #}
+<div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+  <div class="overflow-x-auto min-h-[400px]">
+    <table class="w-full text-left border-collapse whitespace-nowrap">
+      <thead>
+        <tr class="bg-gray-50 border-b border-gray-200 text-xs uppercase text-gray-500 tracking-wider">
+          <th class="px-6 py-4 font-semibold">Profil Warga</th>
+          <th class="px-6 py-4 font-semibold">Kontak & Alamat</th>
+          <th class="px-6 py-4 font-semibold">Username</th>
+          <th class="px-6 py-4 font-semibold">Status</th>
+          <th class="px-6 py-4 font-semibold text-right">Aksi</th>
+        </tr>
+      </thead>
+      <tbody class="text-sm divide-y divide-gray-100 text-gray-700">
+        {% for warga in warga_list %}
+        <tr class="hover:bg-gray-50 transition-colors group">
+          {# Profil Warga dengan Avatar #}
+          <td class="px-6 py-4 cursor-pointer" onclick="window.location='{{ url_for('admin_warga.detail', warga_id=warga.id) }}'">
+            <div class="flex items-center">
+              <div class="h-10 w-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold mr-3">
+                {{ warga.nama_lengkap[0] if warga.nama_lengkap else 'W' }}
+              </div>
+              <div>
+                <p class="font-bold text-gray-900 group-hover:text-brand-600">{{ warga.nama_lengkap }}</p>
+                <p class="text-[11px] text-gray-500 font-mono">NIK: {{ warga.nik }}</p>
+              </div>
+            </div>
+          </td>
+
+          {# Kontak & Alamat #}
+          <td class="px-6 py-4 cursor-pointer" onclick="window.location='{{ url_for('admin_warga.detail', warga_id=warga.id) }}'">
+            <p class="text-gray-800">{{ warga.telepon }}</p>
+            <p class="text-[11px] text-gray-500">{{ warga.rt_rw }}</p>
+            <p class="text-[11px] text-gray-500 truncate max-w-xs">{{ warga.alamat }}</p>
+          </td>
+
+          {# Username #}
+          <td class="px-6 py-4 text-gray-500">
+            {{ warga.username if warga.username else '-' }}
+          </td>
+
+          {# Status #}
+          <td class="px-6 py-4">
+            {{ render_badge(warga.status) }}
+          </td>
+
+          {# Aksi - Uniform Detail link untuk semua warga #}
+          <td class="px-6 py-4 text-right">
+            <a href="{{ url_for('admin_warga.detail', warga_id=warga.id) }}"
+               class="inline-flex items-center text-brand-600 hover:text-brand-700 text-sm font-medium">
+              Detail
+              <svg class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+            </a>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="px-6 py-16 text-center">
+            <div class="flex flex-col items-center justify-center">
+              {# Enhanced Empty State Illustration #}
+              <div class="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mb-5 shadow-inner">
+                <svg class="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+              </div>
+
+              {# Context-specific messages #}
+              {% if q_filter or status_filter or rt_filter %}
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Tidak ada warga yang cocok</h3>
+                <p class="text-sm text-gray-500 mb-4 max-w-sm">
+                  {% if q_filter %}
+                    Tidak ditemukan warga dengan pencarian "{{ q_filter }}"
+                    {% if status_filter %} dan status "{{ status_filter|replace('_', ' ')|title }}"{% endif %}
+                    {% if rt_filter %} di RT {{ rt_filter }}{% endif %}.
+                  {% elif status_filter %}
+                    Tidak ada warga dengan status "{{ status_filter|replace('_', ' ')|title }}"
+                    {% if rt_filter %} di RT {{ rt_filter }}{% endif %}.
+                  {% elif rt_filter %}
+                    Tidak ada warga di RT {{ rt_filter }}.
+                  {% endif %}
+                </p>
+                <a href="{{ url_for('admin_warga.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium">
+                  <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                  Reset Filter
+                </a>
+              {% else %}
+                <h3 class="text-lg font-semibold text-gray-700 mb-2">Belum ada data warga</h3>
+                <p class="text-sm text-gray-500 mb-5 max-w-sm">
+                  Mulai dengan menambahkan data warga desa atau import dari file Excel/CSV.
+                </p>
+                <div class="flex gap-3">
+                  <a href="{{ url_for('admin_warga.create') }}" class="inline-flex items-center px-4 py-2 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Tambah Warga
+                  </a>
+                  <a href="{{ url_for('admin_warga.import_page') }}" class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium shadow-sm">
+                    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Import Bulk
+                  </a>
+                </div>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

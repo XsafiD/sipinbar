@@ -37,7 +37,7 @@
     {% if icon_path %}
     <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
       <svg class="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon_path }}"></path>
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
       </svg>
     </div>
     {% endif %}
@@ -51,8 +51,8 @@
   {% endif %}
   {% if error %}
   <p class="mt-1 text-xs text-red-500 flex items-center">
-    <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-      <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.7 7.3a1 1 0 011.4 0L10 7.6l.3-.3a1 1 0 111.4 1.4l-.3.3.3.3a1 1 0 11-1.4 1.4L10 10.4l-.3.3a1 1 0 01-1.4-1.4l.3-.3-.3-.3a1 1 0 010-1.4z"></path>
+    <svg class="w-3 h-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
     </svg>
     {{ error }}
   </p>

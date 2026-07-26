@@ -27,13 +27,9 @@
 {# Breadcrumb #}
 <nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
   <a href="{{ url_for('peminjaman.index') }}" class="hover:text-brand-600">Daftar Peminjaman</a>
-  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-  </svg>
+  <svg class="w-4 h-4 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
   <a href="{{ url_for('peminjaman.detail', peminjaman_id=peminjaman.id) }}" class="hover:text-brand-600 font-mono">{{ peminjaman.kode_peminjaman }}</a>
-  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-  </svg>
+  <svg class="w-4 h-4 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
   <span class="text-gray-700">Pengembalian</span>
 </nav>
 
@@ -122,9 +118,7 @@
       {% call render_card(title='Informasi Keterlambatan') %}
         <div class="text-center py-2">
           <div class="inline-flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mb-2">
-            <svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
+            <svg class="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           </div>
           <p class="text-xs text-gray-500 uppercase tracking-wider">Terlambat</p>
           <p class="text-2xl font-bold text-red-600 mt-1">
@@ -139,9 +133,7 @@
       {% call render_card(title='Status Pengembalian') %}
         <div class="text-center py-2">
           <div class="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-2">
-            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
+            <svg class="w-6 h-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
           </div>
           <p class="text-sm text-green-700 font-medium">Tepat Waktu</p>
           <p class="text-xs text-gray-500 mt-1">Tidak ada denda keterlambatan.</p>
@@ -154,9 +146,7 @@
         <button type="submit"
                 onclick="return confirm('Konfirmasi pengembalian? Denda akan dihitung otomatis & status peminjaman berubah menjadi Dikembalikan.')"
                 class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-          </svg>
+          <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
           Konfirmasi Pengembalian
         </button>
         <a href="{{ url_for('peminjaman.detail', peminjaman_id=peminjaman.id) }}"

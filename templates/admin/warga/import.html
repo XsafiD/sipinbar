@@ -1,0 +1,105 @@
+{# templates/admin/warga/import.html
+
+  Halaman Import Bulk Warga untuk admin.
+  Upload CSV/Excel untuk menambahkan data warga secara massal.
+
+  Ref: SIPINBAR v2.0.0 - Bulk import warga data
+#}
+{% extends "base.html" %}
+{% from "components/alert.html" import render_flashed %}
+
+{% block title %}Import Warga — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumbs #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin_warga.index') }}" class="hover:text-brand-600">Daftar Warga</a>
+  <svg class="w-4 h-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  <span class="text-gray-700">Import Data</span>
+</nav>
+
+<div class="md:flex md:items-center md:justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Import Data Warga</h1>
+      <p class="text-sm text-gray-500 mt-1">Tambahkan warga secara massal dari CSV atau Excel</p>
+    </div>
+    <a href="{{ url_for('admin_warga.index') }}"
+       class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+      &larr; Kembali
+    </a>
+  </div>
+
+  {# Flash messages #}
+  {{ render_flashed() }}
+
+  <div class="bg-white rounded-lg shadow">
+    <div class="p-6">
+      {# Info box #}
+      <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-6">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-blue-800">Informasi Import</h3>
+            <div class="mt-2 text-sm text-blue-700">
+              <ul class="list-disc list-inside space-y-1">
+                <li>Semua warga yang diimport akan memiliki status <strong>data_only</strong> (belum bisa login)</li>
+                <li>Format file yang didukung: <strong>.csv</strong>, <strong>.xlsx</strong>, <strong>.xls</strong></li>
+                <li>Kolom wajib: <strong>nik</strong>, <strong>nama_lengkap</strong>, <strong>alamat</strong>, <strong>telepon</strong>, <strong>rt_rw</strong></li>
+                <li>NIK yang sudah terdaftar akan otomatis dilewati (skip)</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Download template #}
+      <div class="mb-6">
+        <h3 class="text-lg font-medium text-gray-900 mb-3">Template Import</h3>
+        <a href="{{ url_for('admin_warga.download_template') }}"
+           class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          <svg class="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+          </svg>
+          Download Template CSV
+        </a>
+      </div>
+
+      {# Upload form #}
+      <form method="post" enctype="multipart/form-data" class="space-y-6">
+        <div>
+          <label for="file" class="block text-sm font-medium text-gray-700 mb-2">
+            Upload File CSV/Excel
+          </label>
+          <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md hover:border-brand-500 transition-colors">
+            <div class="space-y-1 text-center">
+              <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+              </svg>
+              <div class="flex text-sm text-gray-600">
+                <label for="file" class="relative cursor-pointer bg-white rounded-md font-medium text-brand-600 hover:text-brand-500 focus-within:outline-none">
+                  <span>Pilih file</span>
+                  <input id="file" name="file" type="file" class="sr-only" accept=".csv,.xlsx,.xls">
+                </label>
+                <p class="pl-1">atau drag & drop</p>
+              </div>
+              <p class="text-xs text-gray-500">CSV, XLSX, atau XLS (max. 5MB)</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button type="submit"
+                  class="px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+            Upload & Preview
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endblock %}

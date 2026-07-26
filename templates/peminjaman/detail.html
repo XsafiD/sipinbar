@@ -28,9 +28,7 @@
 {# Breadcrumb #}
 <nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
   <a href="{{ url_for('peminjaman.index') }}" class="hover:text-brand-600">Daftar Peminjaman</a>
-  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-  </svg>
+  <svg class="w-4 h-4 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
   <span class="text-gray-700 font-mono">{{ peminjaman.kode_peminjaman }}</span>
 </nav>
 
@@ -45,9 +43,7 @@
     </p>
   </div>
   <a href="{{ url_for('peminjaman.index') }}" class="inline-flex items-center px-3 py-1.5 bg-white text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
-    <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-    </svg>
+    <svg class="w-4 h-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path></svg>
     Kembali
   </a>
 </div>
@@ -67,9 +63,7 @@
     <div class="flex flex-col items-center">
       <div class="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold {{ 'bg-brand-600 text-white' if is_done or is_current else 'bg-gray-200 text-gray-500' }} {{ 'ring-4 ring-brand-100' if is_current else '' }}">
         {% if is_done and not is_current %}
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"></path>
-        </svg>
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
         {% else %}
         {{ step_idx + 1 }}
         {% endif %}
@@ -84,9 +78,7 @@
 </div>
 {% if is_rejected %}
 <div class="mt-4 pt-4 border-t border-gray-100 flex items-center space-x-2 text-red-600">
-  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-  </svg>
+  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
   <span class="text-sm font-medium">Peminjaman ditolak</span>
 </div>
 {% endif %}
@@ -230,9 +222,7 @@
         <form method="post" action="{{ url_for('peminjaman.setujui', peminjaman_id=peminjaman.id) }}">
           {{ confirm_form.csrf_token }}
           <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-brand-600 text-white rounded-lg hover:bg-brand-700 transition-colors text-sm font-medium shadow-sm">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
+            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
             Setujui Peminjaman
           </button>
         </form>
@@ -243,32 +233,24 @@
         <form method="post" action="{{ url_for('peminjaman.pinjam', peminjaman_id=peminjaman.id) }}">
           {{ confirm_form.csrf_token }}
           <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium shadow-sm">
-            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-            </svg>
+            <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
             Tandai Dipinjam
           </button>
         </form>
         {% elif peminjaman.status in ('dipinjam', 'terlambat') %}
         <a href="{{ url_for('peminjaman.kembalikan', peminjaman_id=peminjaman.id) }}"
            class="w-full inline-flex items-center justify-center px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium shadow-sm">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 15v-1a4 4 0 00-4-4H8a4 4 0 00-4 4v1m12 0H4m12 0v3m0-3v-3M8 7a2 2 0 11-4 0 2 2 0 014 0z"></path>
-          </svg>
+          <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
           Proses Pengembalian
         </a>
         {% elif peminjaman.status == 'dikembalikan' %}
         <div class="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
-          <svg class="w-8 h-8 text-green-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
+          <svg class="w-8 h-8 text-green-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           <p class="text-sm text-green-700 font-medium">Peminjaman selesai</p>
         </div>
         {% elif peminjaman.status == 'ditolak' %}
         <div class="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
-          <svg class="w-8 h-8 text-red-500 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-          </svg>
+          <svg class="w-8 h-8 text-red-500 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
           <p class="text-sm text-red-700 font-medium">Peminjaman ditolak</p>
         </div>
         {% endif %}

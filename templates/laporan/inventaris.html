@@ -22,7 +22,7 @@
 {# Breadcrumb #}
 <nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
   <a href="{{ url_for('laporan.index') }}" class="hover:text-brand-600">Pusat Laporan</a>
-  <svg class="w-4 h-4 mx-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg class="w-4 h-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
   </svg>
   <span class="text-gray-700">Laporan Inventaris</span>
@@ -35,7 +35,7 @@
   </div>
   <a href="{{ url_for('laporan.export', type='inventaris', format='csv', include_deleted=('true' if include_deleted else 'false')) }}"
      class="inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium shadow-sm no-print">
-    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
     </svg>
     Export CSV
@@ -131,8 +131,8 @@
         <tr>
           <td colspan="6" class="px-6 py-12 text-center text-gray-400">
             <div class="flex flex-col items-center">
-              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
+              <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
               </svg>
               <p class="text-sm">Tidak ada data barang untuk filter ini.</p>
             </div>

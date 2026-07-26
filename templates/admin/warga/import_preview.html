@@ -1,0 +1,211 @@
+{# templates/admin/warga/import_preview.html
+
+  Halaman Preview Import Warga untuk admin.
+  Menampilkan preview hasil import sebelum diproses ke database.
+
+  Ref: SIPINBAR v2.0.0 - Bulk import warga data with preview
+#}
+{% extends "base.html" %}
+{% from "components/alert.html" import render_flashed %}
+
+{% block title %}Preview Import — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumbs #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin_warga.index') }}" class="hover:text-brand-600">Daftar Warga</a>
+  <svg class="w-4 h-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  <a href="{{ url_for('admin_warga.import_page') }}" class="hover:text-brand-600">Import</a>
+  <svg class="w-4 h-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  <span class="text-gray-700">Preview</span>
+</nav>
+
+<div class="md:flex md:items-center md:justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Preview Import Warga</h1>
+    <p class="text-sm text-gray-500 mt-1">Review hasil import sebelum memproses ke database</p>
+  </div>
+  <a href="{{ url_for('admin_warga.index') }}"
+     class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+    &larr; Kembali
+  </a>
+</div>
+
+{# Flash messages #}
+{{ render_flashed() }}
+
+  {% if preview.valid %}
+  {# Summary card #}
+  <div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">Ringkasan Import</h2>
+    </div>
+    <div class="px-6 py-4">
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-blue-50 rounded-lg p-4">
+          <div class="text-2xl font-bold text-blue-600">{{ preview.summary.total }}</div>
+          <div class="text-sm text-blue-800">Total Baris</div>
+        </div>
+        <div class="bg-green-50 rounded-lg p-4">
+          <div class="text-2xl font-bold text-green-600">{{ preview.summary.valid }}</div>
+          <div class="text-sm text-green-800">Valid</div>
+        </div>
+        <div class="bg-red-50 rounded-lg p-4">
+          <div class="text-2xl font-bold text-red-600">{{ preview.summary.invalid }}</div>
+          <div class="text-sm text-red-800">Invalid</div>
+        </div>
+        <div class="bg-yellow-50 rounded-lg p-4">
+          <div class="text-2xl font-bold text-yellow-600">{{ preview.summary.duplicate }}</div>
+          <div class="text-sm text-yellow-800">Duplikat</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {# Valid rows preview #}
+  {% if preview.valid_rows %}
+  <div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">Preview Data Valid ({{ preview.valid_rows|length }} dari {{ preview.summary.valid }})</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alamat</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telepon</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">RT/RW</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for row in preview.valid_rows %}
+          <tr class="bg-green-50">
+            <td class="px-6 py-4 text-sm text-gray-900">{{ row.nik }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ row.nama_lengkap }}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ row.alamat }}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ row.telepon }}</td>
+            <td class="px-6 py-4 text-sm text-gray-500">{{ row.rt_rw }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Invalid rows #}
+  {% if preview.invalid_rows %}
+  <div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">Data Invalid ({{ preview.invalid_rows|length }} baris)</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Baris</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Alasan</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for row in preview.invalid_rows %}
+          <tr class="bg-red-50">
+            <td class="px-6 py-4 text-sm text-gray-900">{{ row.row }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ row.data.nik if row.data else '-' }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ row.data.nama_lengkap if row.data else '-' }}</td>
+            <td class="px-6 py-4 text-sm text-red-600">{{ row.reason }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Duplicate NIKs #}
+  {% if preview.duplicate_nik %}
+  <div class="bg-white rounded-lg shadow mb-6">
+    <div class="px-6 py-4 border-b border-gray-200">
+      <h2 class="text-lg font-medium text-gray-900">NIK Duplikat ({{ preview.duplicate_nik|length }} baris)</h2>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Baris</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">NIK</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
+            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+          </tr>
+        </thead>
+        <tbody class="bg-white divide-y divide-gray-200">
+          {% for row in preview.duplicate_nik %}
+          <tr class="bg-yellow-50">
+            <td class="px-6 py-4 text-sm text-gray-900">{{ row.row }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ row.nik }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ row.nama }}</td>
+            <td class="px-6 py-4 text-sm text-yellow-600">{{ row.reason }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {# Action buttons #}
+  <div class="flex justify-between">
+    <a href="{{ url_for('admin_warga.import_page') }}"
+       class="px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+      Batal / Upload Ulang
+    </a>
+    <form action="{{ url_for('admin_warga.import_process') }}" method="post">
+      <input type="hidden" name="file_path" value="{{ file_path }}">
+      {% if preview.summary.valid > 0 %}
+      <button type="submit"
+              class="px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500"
+              onclick="return confirm('Proses import {{ preview.summary.valid }} data valid ke database?')">
+        Proses Import ({{ preview.summary.valid }} data)
+      </button>
+      {% else %}
+      <button type="button" disabled
+              class="px-6 py-3 border border-transparent rounded-lg shadow-sm text-sm font-medium text-gray-400 bg-gray-300 cursor-not-allowed">
+        Tidak ada data valid untuk diimport
+      </button>
+      {% endif %}
+    </form>
+  </div>
+
+  {% else %}
+  {# Error: File tidak valid #}
+  <div class="bg-red-50 border border-red-200 rounded-md p-4">
+    <div class="flex">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium text-red-800">Error Validasi File</h3>
+        <div class="mt-2 text-sm text-red-700">
+          <p>{{ preview.message }}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="mt-4">
+    <a href="{{ url_for('admin_warga.import_page') }}"
+       class="px-6 py-3 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+      &larr; Kembali
+    </a>
+  </div>
+  {% endif %}
+{% endblock %}

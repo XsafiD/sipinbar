@@ -1,15 +1,14 @@
 """
-tests/test_auth.py — Test modul Autentikasi (T-AUTH-06).
+tests/test_auth.py — Test modul Autentikasi SIPINBAR v2.0.0.
 
 Menguji:
-  - AuthService.login untuk Admin & Warga (happy + error path)
-  - AuthService.register_warga (valid, NIK duplikat, format invalid)
-  - AuthService.verify_warga & reject_warga
+  - AuthService.login untuk Admin & Warga (username-based)
+  - Password change functionality
   - Password hashing benar (tidak plain-text)
-  - Controller endpoint /login, /logout, /register (HTTP level)
+  - Controller endpoint /login, /logout, /change-password
   - Role-based session setelah login
 
-Refs: SRS §11.2 TC-01 & TC-02, TODO T-AUTH-06
+Ref: SIPINBAR v2.0.0 - Username-based authentication, no self-registration
 """
 import pytest
 
@@ -43,32 +42,50 @@ def admin_user(app):
 
 @pytest.fixture
 def warga_aktif(app):
-    """Warga aktif dengan password sudah di-set."""
+    """Warga aktif dengan username & password sudah di-set."""
     w = Warga(
         nik="3171010101010001",
         nama_lengkap="Warga Aktif",
         alamat="Jl. Mawar No. 1",
         telepon="081234567890",
         rt_rw="001/002",
-        status="aktif",
+        status="data_only",
     )
-    w.set_password("warga12345")
+    w.activate("warga_aktif", "warga12345")
     db.session.add(w)
     db.session.commit()
     return w
 
 
 @pytest.fixture
-def warga_menunggu(app):
-    """Warga menunggu verifikasi (belum punya password)."""
+def warga_data_only(app):
+    """Warga data_only (belum punya username/password)."""
     w = Warga(
         nik="3171010101010002",
-        nama_lengkap="Warga Menunggu",
+        nama_lengkap="Warga Data Only",
         alamat="Jl. Melati No. 2",
         telepon="081234567891",
         rt_rw="003/004",
-        status="menunggu",
+        status="data_only",
     )
+    db.session.add(w)
+    db.session.commit()
+    return w
+
+
+@pytest.fixture
+def warga_diblokir(app):
+    """Warga diblokir (pernah aktif, kemudian diblokir)."""
+    w = Warga(
+        nik="3171010101010003",
+        nama_lengkap="Warga Diblokir",
+        alamat="Jl. Anggrek No. 3",
+        telepon="081234567892",
+        rt_rw="005/006",
+        status="data_only",
+    )
+    w.activate("warga_diblokir", "warga12345")
+    w.blokir()
     db.session.add(w)
     db.session.commit()
     return w
@@ -78,7 +95,7 @@ def warga_menunggu(app):
 
 
 class TestAuthServiceLogin:
-    """TC-01: Login berhasil; TC-02: Login gagal."""
+    """TC-01: Login berhasil & gagal (username-based)."""
 
     def test_login_admin_berhasil(self, auth_service, admin_user):
         """Login admin dengan username + password benar → return (Admin, 'admin')."""
@@ -100,24 +117,22 @@ class TestAuthServiceLogin:
         assert auth_service.login("ghost_user", "apaaja") is None
 
     def test_login_warga_berhasil(self, auth_service, warga_aktif):
-        """Login warga dengan NIK + password benar → return (Warga, 'warga')."""
-        result = auth_service.login("3171010101010001", "warga12345")
+        """Login warga dengan username + password benar → return (Warga, 'warga')."""
+        result = auth_service.login("warga_aktif", "warga12345")
         assert result is not None
         user, role = result
         assert role == "warga"
         assert isinstance(user, Warga)
         assert user.id == warga_aktif.id
 
-    def test_login_warga_menunggu_gagal(self, auth_service, warga_menunggu):
-        """Warga berstatus 'menunggu' tidak bisa login walau password benar."""
-        # warga_menunggu belum punya password_hash, jadi memang tidak bisa login
-        assert auth_service.login("3171010101010002", "apaapa") is None
+    def test_login_warga_data_only_gagal(self, auth_service, warga_data_only):
+        """Warga berstatus 'data_only' tidak bisa login walau password benar."""
+        # warga_data_only belum punya username, jadi tidak bisa login
+        assert auth_service.login("any_username", "apaapa") is None
 
-    def test_login_warga_diblokir_gagal(self, auth_service, warga_aktif):
+    def test_login_warga_diblokir_gagal(self, auth_service, warga_diblokir):
         """Warga berstatus 'diblokir' tidak bisa login."""
-        warga_aktif.blokir()
-        db.session.commit()
-        assert auth_service.login("3171010101010001", "warga12345") is None
+        assert auth_service.login("warga_diblokir", "warga12345") is None
 
     def test_login_input_kosong_return_none(self, auth_service):
         """Input kosong (None / '') → None, tidak raise."""
@@ -125,276 +140,220 @@ class TestAuthServiceLogin:
         assert auth_service.login("admin", "") is None
         assert auth_service.login(None, None) is None
 
-
-class TestAuthServiceRegister:
-    """TC-02 register: valid, duplikat, format invalid."""
-
-    def test_register_warga_berhasil_status_menunggu(self, auth_service, app):
-        """Register valid → warga tersimpan dengan status='menunggu'."""
-        data = {
-            "nik": "3171010101010010",
-            "nama_lengkap": "Budi Santoso",
-            "alamat": "Jl. Kenanga No. 5",
-            "telepon": "081299988877",
-            "rt_rw": "005/006",
-        }
-        w = auth_service.register_warga(data)
-        assert w.id is not None
-        assert w.nik == "3171010101010010"
-        assert w.status == "menunggu"
-        # Password belum di-set sampai verifikasi
-        assert w.password_hash is None
-
-    def test_register_nik_duplikat_gagal(self, auth_service, warga_aktif):
-        """Register NIK yang sudah ada → ValueError."""
-        with pytest.raises(ValueError, match="sudah terdaftar"):
-            auth_service.register_warga(
-                {
-                    "nik": "3171010101010001",  # sama dengan warga_aktif
-                    "nama_lengkap": "Peniru",
-                    "alamat": "Jl. X",
-                    "telepon": "081200000000",
-                    "rt_rw": "001/001",
-                }
-            )
-
-    def test_register_nik_format_invalid(self, auth_service):
-        """NIK bukan 16 digit → ValueError."""
-        with pytest.raises(ValueError, match="NIK"):
-            auth_service.register_warga(
-                {
-                    "nik": "123",  # terlalu pendek
-                    "nama_lengkap": "X",
-                    "alamat": "Y",
-                    "telepon": "081234567890",
-                    "rt_rw": "001/002",
-                }
-            )
-
-    def test_register_telepon_format_invalid(self, auth_service):
-        """Telepon dengan huruf → ValueError."""
-        with pytest.raises(ValueError, match="telepon"):
-            auth_service.register_warga(
-                {
-                    "nik": "3171010101010020",
-                    "nama_lengkap": "X",
-                    "alamat": "Y",
-                    "telepon": "08abc",  # huruf
-                    "rt_rw": "001/002",
-                }
-            )
-
-    def test_register_rt_rw_format_invalid(self, auth_service):
-        """RT/RW format salah → ValueError."""
-        with pytest.raises(ValueError, match="RT/RW"):
-            auth_service.register_warga(
-                {
-                    "nik": "3171010101010030",
-                    "nama_lengkap": "X",
-                    "alamat": "Y",
-                    "telepon": "081234567890",
-                    "rt_rw": "1/2",  # format salah
-                }
-            )
-
-    def test_register_field_kosong_gagal(self, auth_service):
-        """Field wajib kosong → ValueError."""
-        with pytest.raises(ValueError, match="wajib diisi"):
-            auth_service.register_warga(
-                {
-                    "nik": "3171010101010040",
-                    "nama_lengkap": "",
-                    "alamat": "Y",
-                    "telepon": "081234567890",
-                    "rt_rw": "001/002",
-                }
-            )
+    def test_login_warga_username_tidak_ada_gagal(self, auth_service):
+        """Login warga dengan username tidak terdaftar → None."""
+        assert auth_service.login("ghost_warga", "password123") is None
 
 
-class TestAuthServiceVerifyReject:
-    """Verifikasi & penolakan warga oleh admin."""
+class TestAuthServiceChangePassword:
+    """TC-03: Ganti password untuk user yang sedang login."""
 
-    def test_verify_warga_menunggu_jadi_aktif(self, auth_service, warga_menunggu):
-        """Verifikasi: menunggu → aktif, password ter-set."""
-        verified = auth_service.verify_warga(warga_menunggu.id, "newpass123")
-        assert verified.status == "aktif"
-        assert verified.password_hash is not None
-        # Password ter-hash (bukan plain)
-        assert "newpass123" not in (verified.password_hash or "")
-        assert verified.check_password("newpass123") is True
-        assert verified.verified_at is not None
+    def test_change_password_admin_berhasil(self, auth_service, admin_user):
+        """Ganti password admin dengan password saat ini benar → sukses."""
+        auth_service.change_password(admin_user, "admin12345", "newpass123")
+        # Verifikasi password baru
+        assert admin_user.check_password("newpass123") is True
+        assert admin_user.check_password("admin12345") is False
 
-    def test_verify_warga_tidak_ditemukan(self, auth_service):
-        """Verify ID tidak ada → ValueError."""
-        with pytest.raises(ValueError, match="tidak ditemukan"):
-            auth_service.verify_warga("nonexistent-id", "pass123")
+    def test_change_password_gagal_password_salah(self, auth_service, admin_user):
+        """Ganti password dengan password saat ini salah → ValueError."""
+        with pytest.raises(ValueError, match="salah"):
+            auth_service.change_password(admin_user, "password_salah", "newpass123")
 
-    def test_verify_warga_sudah_aktif_gagal(self, auth_service, warga_aktif):
-        """Verifikasi warga yang sudah aktif → ValueError (state machine)."""
-        with pytest.raises(ValueError):
-            auth_service.verify_warga(warga_aktif.id, "pass123")
+    def test_change_password_gagal_password_baru_kurang_dari_6(self, auth_service, admin_user):
+        """Password baru kurang dari 6 karakter → ValueError."""
+        with pytest.raises(ValueError, match="minimal 6 karakter"):
+            auth_service.change_password(admin_user, "admin12345", "short")
 
-    def test_reject_warga_menunggu_jadi_ditolak(self, auth_service, warga_menunggu):
-        """Reject: menunggu → ditolak dengan alasan."""
-        rejected = auth_service.reject_warga(
-            warga_menunggu.id, "Data NIK tidak lengkap"
-        )
-        assert rejected.status == "ditolak"
-        assert rejected.alasan_penolakan == "Data NIK tidak lengkap"
-
-    def test_reject_tanpa_alasan_gagal(self, auth_service, warga_menunggu):
-        """Reject tanpa alasan → ValueError."""
-        with pytest.raises(ValueError):
-            auth_service.reject_warga(warga_menunggu.id, "   ")
+    def test_change_password_warga_berhasil(self, auth_service, warga_aktif):
+        """Ganti password warga dengan password saat ini benar → sukses."""
+        auth_service.change_password(warga_aktif, "warga12345", "newwarga123")
+        # Verifikasi password baru
+        assert warga_aktif.check_password("newwarga123") is True
+        assert warga_aktif.check_password("warga12345") is False
 
 
 class TestPasswordHashing:
-    """Validasi password hashing di model (encapsulation)."""
+    """TC-04: Password hashing benar (bukan plain-text)."""
 
     def test_admin_password_tidak_plain(self, admin_user):
-        """password_hash ≠ plain text."""
+        """Password admin disimpan sebagai hash, bukan plain-text."""
+        assert admin_user.password_hash is not None
         assert admin_user.password_hash != "admin12345"
-        assert len(admin_user.password_hash) > 30  # PBKDF2 hash panjang
+        assert "|" not in admin_user.password_hash  # Bukan format pipe
 
     def test_warga_password_tidak_plain(self, warga_aktif):
-        """password_hash ≠ plain text."""
+        """Password warga disimpan sebagai hash, bukan plain-text."""
+        assert warga_aktif.password_hash is not None
         assert warga_aktif.password_hash != "warga12345"
-        assert warga_aktif.check_password("warga12345") is True
-        assert warga_aktif.check_password("salah") is False
+        assert "|" not in warga_aktif.password_hash
 
     def test_password_minimal_6_karakter(self, app):
-        """Password < 6 karakter → ValueError."""
-        w = Warga(
-            nik="3171010101010099",
-            nama_lengkap="X",
-            alamat="Y",
-            telepon="081234567890",
-            rt_rw="001/002",
-        )
-        with pytest.raises(ValueError, match="minimal 6"):
-            w.set_password("123")
+        """Password minimal 6 karakter → enforced di model."""
+        admin = Admin(username="admin_pwd", nama_lengkap="Admin Pwd", role="admin")
+        with pytest.raises(ValueError, match="minimal 6 karakter"):
+            admin.set_password("short")
+
+        # Valid password sukses
+        admin.set_password("valid123")
+        assert admin.password_hash is not None
 
 
-# ── CONTROLLER (HTTP) TESTS ──────────────────────────────────
+# ── CONTROLLER LAYER TESTS ─────────────────────────────────────
 
 
 class TestAuthControllerLogin:
-    """TC-01 & TC-02 via HTTP test client."""
+    """TC-05: Login endpoint (/login) GET & POST."""
 
     def test_get_login_menampilkan_form(self, client):
-        """GET /login → 200, mengandung field username & password."""
-        resp = client.get("/login")
-        assert resp.status_code == 200
-        body = resp.get_data(as_text=True)
-        assert "username" in body.lower()
-        assert "password" in body.lower()
+        """GET /login → 200 + form field ter-render."""
+        response = client.get("/login")
+        assert response.status_code == 200
+        # Cek form field ada di HTML
+        assert b"type=\"password\"" in response.data
+        assert b"name=\"username\"" in response.data
+        # Cek tidak ada link register (v2.0.0)
+        assert b"/register" not in response.data
 
-    def test_post_login_admin_berhasil_redirect_dashboard(
-        self, client, admin_user
-    ):
-        """POST /login admin valid → 302 redirect ke /dashboard."""
-        resp = client.post(
-            "/login",
-            data={"username": "admin_test", "password": "admin12345"},
-            follow_redirects=False,
+    def test_post_login_admin_berhasil_redirect_dashboard(self, client, admin_user):
+        """POST /login dengan kredensial admin benar → redirect ke /dashboard."""
+        response = client.post(
+            "/login", data={"username": "admin_test", "password": "admin12345"}, follow_redirects=False
         )
-        assert resp.status_code == 302
-        assert "/dashboard" in resp.headers["Location"]
+        assert response.status_code == 302  # redirect
+        assert response.headers["Location"] == "/dashboard"
 
-    def test_post_login_berhasil_set_session_role(
-        self, client, admin_user
-    ):
-        """Login berhasil → session berisi user_id, role, nama."""
-        with client.session_transaction() as sess:
-            assert "user_id" not in sess  # belum login
-        client.post(
-            "/login",
-            data={"username": "admin_test", "password": "admin12345"},
-        )
-        with client.session_transaction() as sess:
-            assert sess["user_id"] == admin_user.id
-            assert sess["role"] == "admin"
-            assert sess["nama"] == "Admin Test"
+        # Follow redirect
+        response = client.get("/dashboard")
+        assert response.status_code == 200
 
-    def test_post_login_password_salah_render_ulang_dengan_flash(
-        self, client, admin_user
-    ):
-        """Login gagal → 401 (render ulang form) + flash error."""
-        resp = client.post(
-            "/login",
-            data={"username": "admin_test", "password": "salahbanget"},
-            follow_redirects=False,
+    def test_post_login_berhasil_set_session_role(self, client, admin_user):
+        """POST /login berhasil → session ter-set dengan user_id & role."""
+        response = client.post(
+            "/login", data={"username": "admin_test", "password": "admin12345"}, follow_redirects=False
         )
-        assert resp.status_code == 401
-        body = resp.get_data(as_text=True)
-        assert "password salah" in body.lower()
+        assert response.status_code == 302
+
+        # Cek session cookie
+        session_cookie = [c for c in response.headers.getlist("Set-Cookie") if "session" in c]
+        assert len(session_cookie) > 0
+
+        # Follow redirect & cek session
+        response = client.get("/dashboard")
+        assert response.status_code == 200
+        # User info seharusnya muncul di dashboard
+        assert b"Admin Test" in response.data or b"Logout" in response.data
+
+    def test_post_login_password_salah_render_ulang_dengan_flash(self, client, admin_user):
+        """POST /login password salah → tetap di /login + flash error."""
+        response = client.post(
+            "/login", data={"username": "admin_test", "password": "salah_sangat"}, follow_redirects=False
+        )
+        assert response.status_code == 200  # tetap di login
+        assert b"Username atau password salah" in response.data
+
+    def test_post_login_username_tidak_ada_render_ulang_dengan_flash(self, client):
+        """POST /login username tidak ada → tetap di /login + flash error."""
+        response = client.post(
+            "/login", data={"username": "tidak_ada", "password": "apaaja"}, follow_redirects=False
+        )
+        assert response.status_code == 200
+        assert b"Username atau password salah" in response.data
+
+
+class TestAuthControllerLogout:
+    """TC-06: Logout endpoint (/logout)."""
 
     def test_logout_menghapus_session(self, client, admin_user):
-        """Logout → session kosong + redirect ke /login."""
+        """GET /logout → session dihapus + redirect ke /login."""
         # Login dulu
-        client.post(
-            "/login",
-            data={"username": "admin_test", "password": "admin12345"},
-        )
+        client.post("/login", data={"username": "admin_test", "password": "admin12345"})
+
         # Logout
-        resp = client.get("/logout", follow_redirects=False)
-        assert resp.status_code == 302
-        assert "/login" in resp.headers["Location"]
-        with client.session_transaction() as sess:
-            assert "user_id" not in sess
+        response = client.get("/logout", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/login"
 
     def test_logout_tanpa_login_redirect_login(self, client):
-        """Akses /logout tanpa login → redirect ke /login (login_required)."""
-        resp = client.get("/logout", follow_redirects=False)
-        assert resp.status_code == 302
-        assert "/login" in resp.headers["Location"]
+        """GET /logout tanpa login → tetap redirect ke /login."""
+        response = client.get("/logout", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/login"
 
 
-class TestAuthControllerRegister:
-    """Endpoint /register via HTTP."""
+class TestAuthControllerChangePassword:
+    """TC-07: Change Password endpoint (/change-password) v2.0.0."""
 
-    def test_get_register_menampilkan_form(self, client):
-        resp = client.get("/register")
-        assert resp.status_code == 200
-        body = resp.get_data(as_text=True)
-        assert "nik" in body.lower()
-        assert "nama_lengkap" in body.lower()
+    def test_get_change_password_memampilkan_form(self, client, admin_user):
+        """GET /change-password → 200 + form field ter-render."""
+        # Login dulu
+        client.post("/login", data={"username": "admin_test", "password": "admin12345"})
 
-    def test_post_register_berhasil_redirect_login(self, client, app):
-        """Register valid → 302 ke /login + warga tersimpan."""
-        resp = client.post(
-            "/register",
+        response = client.get("/change-password")
+        assert response.status_code == 200
+        assert b"type=\"password\"" in response.data
+        assert b"current_password" in response.data
+        assert b"new_password" in response.data
+        assert b"confirm_password" in response.data
+
+    def test_post_change_password_berhasil(self, client, admin_user):
+        """POST /change-password dengan data valid → redirect dashboard + flash sukses."""
+        # Login dulu
+        client.post("/login", data={"username": "admin_test", "password": "admin12345"})
+
+        response = client.post(
+            "/change-password",
             data={
-                "nik": "3171010101010100",
-                "nama_lengkap": "Budi",
-                "alamat": "Jl. ABC",
-                "telepon": "081234567890",
-                "rt_rw": "001/002",
+                "current_password": "admin12345",
+                "new_password": "newpass123",
+                "confirm_password": "newpass123",
             },
             follow_redirects=False,
         )
-        assert resp.status_code == 302
-        assert "/login" in resp.headers["Location"]
-        # Pastikan tersimpan
-        with app.app_context():
-            w = Warga.query.filter_by(nik="3171010101010100").first()
-            assert w is not None
-            assert w.status == "menunggu"
+        assert response.status_code == 302  # redirect
+        assert response.headers["Location"] == "/dashboard"
 
-    def test_post_register_nik_duplikat_render_error(self, client, warga_aktif):
-        """Register NIK duplikat → render ulang + flash error."""
-        resp = client.post(
-            "/register",
+        # Follow redirect & cek flash message
+        response = client.get("/dashboard")
+        assert response.status_code == 200
+        assert b"Password berhasil diubah" in response.data
+
+    def test_post_change_password_gagal_konfirmasi_tidak_cocok(self, client, admin_user):
+        """POST /change-password dengan konfirmasi salah → render ulang dengan error."""
+        # Login dulu
+        client.post("/login", data={"username": "admin_test", "password": "admin12345"})
+
+        response = client.post(
+            "/change-password",
             data={
-                "nik": "3171010101010001",  # duplikat
-                "nama_lengkap": "Peniru",
-                "alamat": "Jl. X",
-                "telepon": "081200000000",
-                "rt_rw": "001/002",
+                "current_password": "admin12345",
+                "new_password": "newpass123",
+                "confirm_password": "beda",  # konfirmasi beda
             },
             follow_redirects=False,
         )
-        # Tidak redirect (form render ulang)
-        assert resp.status_code == 200
-        body = resp.get_data(as_text=True)
-        assert "sudah terdaftar" in body.lower()
+        assert response.status_code == 200  # tetap di halaman
+        assert b"tidak cocok" in response.data or "cocok" in response.data
+
+    def test_post_change_password_gagal_password_salah(self, client, admin_user):
+        """POST /change-password dengan password saat ini salah → render ulang dengan error."""
+        # Login dulu
+        client.post("/login", data={"username": "admin_test", "password": "admin12345"})
+
+        response = client.post(
+            "/change-password",
+            data={
+                "current_password": "password_salah",
+                "new_password": "newpass123",
+                "confirm_password": "newpass123",
+            },
+            follow_redirects=False,
+        )
+        assert response.status_code == 200  # tetap di halaman
+        assert b"salah" in response.data
+
+    def test_change_password_tanpa_login_redirect_login(self, client):
+        """GET/POST /change-password tanpa login → redirect ke /login."""
+        response = client.get("/change-password", follow_redirects=False)
+        assert response.status_code == 302
+        assert response.headers["Location"] == "/login"

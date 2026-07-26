@@ -3,9 +3,10 @@
   Halaman Login (SCR-01). Tidak memakai base.html (centered card, full page)
   sesuai UI Spec SCR-01 & mockup `login_sipinbar.html`.
 
-  Form: username (admin) / NIK (warga), password + CSRF. Link ke register.
+  Form: username (admin & warga), password + CSRF. Tidak ada link register (v2.0).
   Flash error otomatis dirender (render_flashed).
 
+  Ref: SIPINBAR v2.0.0 - Username-based authentication, no self-registration
 #}
 {% extends "base.html" %}
 {% from "components/alert.html" import render_flashed %}
@@ -19,7 +20,7 @@
     {# Header card — logo + brand #}
     <div class="bg-brand-600 p-6 text-center">
       <div class="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4 shadow-sm">
-        <svg class="w-8 h-8 text-brand-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-8 h-8 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>
         </svg>
       </div>
@@ -37,7 +38,7 @@
       <form method="post" action="{{ url_for('auth.login') }}" class="space-y-5">
         {{ form.csrf_token }}
 
-        {# Input Username / NIK #}
+        {# Input Username #}
         <div>
           <label for="username" class="block text-sm font-medium text-gray-700 mb-1">
             {{ form.username.label.text }}
@@ -48,7 +49,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
               </svg>
             </div>
-            {{ form.username(id="username", placeholder="Username admin atau NIK warga", autocomplete="username",
+            {{ form.username(id="username", placeholder="Username", autocomplete="username",
                 class="pl-10 w-full px-4 py-2.5 bg-gray-50 border rounded-lg text-sm focus:ring-brand-500 focus:border-brand-500 transition-colors outline-none " ~ ("border-red-500" if form.username.errors else "border-gray-300")) }}
           </div>
           {% if form.username.errors %}
@@ -82,26 +83,18 @@
           </button>
         </div>
       </form>
-
-      {# Link registrasi #}
-      <div class="mt-6 text-center text-sm text-gray-600">
-        Belum punya akun warga?
-        <a href="{{ url_for('auth.register') }}" class="font-medium text-brand-600 hover:text-brand-500 hover:underline transition-colors">
-          Daftar sekarang
-        </a>
-      </div>
     </div>
 
     {# Footer bantuan #}
     <div class="bg-gray-50 px-8 py-4 border-t border-gray-100 text-center">
       <p class="text-xs text-gray-500">
-        Butuh bantuan? Hubungi Admin Desa.
+        Butuh bantuan? Hubungi Admin Desa untuk pembuatan akun.
       </p>
     </div>
   </div>
 </main>
 
 <footer class="py-4 text-center text-xs text-gray-400 no-print">
-  &copy; 2026 Pemerintahan Desa. SIPINBAR versi 1.0.
+  &copy; 2026 Pemerintahan Desa. SIPINBAR versi 2.0.
 </footer>
 {% endblock %}

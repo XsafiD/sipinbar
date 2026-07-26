@@ -1,0 +1,11 @@
+{# Action cell baru - Uniform Detail link untuk semua warga #}
+          {# Aksi - Uniform Detail link untuk semua warga #}
+          <td class="px-6 py-4 text-right">
+            <a href="{{ url_for('admin_warga.detail', warga_id=warga.id) }}"
+               class="inline-flex items-center text-brand-600 hover:text-brand-700 text-sm font-medium">
+              Detail
+              <svg class="w-4 h-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+              </svg>
+            </a>
+          </td>

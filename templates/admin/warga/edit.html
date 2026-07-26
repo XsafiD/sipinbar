@@ -1,0 +1,128 @@
+{# templates/admin/warga/edit.html
+
+  Halaman Edit Data Warga untuk admin.
+  Edit data identitas warga (tidak termasuk username/password).
+
+  Ref: SIPINBAR v2.0.0 - Edit warga data (not auth fields)
+#}
+{% extends "base.html" %}
+{% from "components/alert.html" import render_flashed %}
+
+{% block title %}Edit Warga — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumbs #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin_warga.index') }}" class="hover:text-brand-600">Daftar Warga</a>
+  <svg class="w-4 h-4 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+  <a href="{{ url_for('admin_warga.detail', warga_id=warga.id) }}" class="hover:text-brand-600">{{ warga.nama_lengkap }}</a>
+  <svg class="w-4 h-4 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+  <span class="text-gray-700">Edit</span>
+</nav>
+
+<div class="md:flex md:items-center md:justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Edit Data Warga</h1>
+      <p class="text-sm text-gray-500 mt-1">Update data identitas warga</p>
+    </div>
+    <a href="{{ url_for('admin_warga.detail', warga_id=warga.id) }}"
+       class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+      &larr; Kembali
+    </a>
+  </div>
+
+  {# Flash messages #}
+  {{ render_flashed() }}
+
+  <div class="bg-white rounded-lg shadow">
+    <form method="post" action="{{ url_for('admin_warga.edit', warga_id=warga.id) }}" class="p-6 space-y-6">
+      {{ form.csrf_token }}
+
+      {# Info: Username dan Password tidak bisa diedit #}
+      {% if warga.username %}
+      <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-blue-800">Informasi Akun</h3>
+            <div class="mt-2 text-sm text-blue-700">
+              <p>Username dan Password tidak dapat diubah di halaman ini.</p>
+              <p class="mt-1">Username: <span class="font-semibold">{{ warga.username }}</span></p>
+              <p class="mt-1">Untuk reset password, gunakan menu "Reset Password" di halaman Detail.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-yellow-800">Status: Data Only</h3>
+            <div class="mt-2 text-sm text-yellow-700">
+              <p>Warga ini belum memiliki akun login. Gunakan menu "Aktivasi Akun" di halaman Detail untuk memberikan akses login.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      {# Data Identitas #}
+      <div class="space-y-4">
+        {# Nama Lengkap #}
+        <div>
+          {{ form.nama_lengkap.label(class="block text-sm font-medium text-gray-700") }}
+          {{ form.nama_lengkap(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm") }}
+          {% if form.nama_lengkap.errors %}
+          <p class="mt-1 text-sm text-red-600">{{ form.nama_lengkap.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        {# Alamat #}
+        <div>
+          {{ form.alamat.label(class="block text-sm font-medium text-gray-700") }}
+          {{ form.alamat(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm", rows=3) }}
+          {% if form.alamat.errors %}
+          <p class="mt-1 text-sm text-red-600">{{ form.alamat.errors[0] }}</p>
+          {% endif %}
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {# Telepon #}
+          <div>
+            {{ form.telepon.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.telepon(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm") }}
+            {% if form.telepon.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.telepon.errors[0] }}</p>
+            {% endif %}
+          </div>
+
+          {# RT/RW #}
+          <div>
+            {{ form.rt_rw.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.rt_rw(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm") }}
+            {% if form.rt_rw.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.rt_rw.errors[0] }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# Submit buttons #}
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <a href="{{ url_for('admin_warga.detail', warga_id=warga.id) }}"
+           class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          Batal
+        </a>
+        <button type="submit"
+                class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+          Simpan Perubahan
+        </button>
+      </div>
+    </form>
+  </div>
+{% endblock %}

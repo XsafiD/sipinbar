@@ -1,0 +1,829 @@
+---
+title: "User Flow SIPINBAR"
+subtitle: "Sistem Informasi Peminjaman Barang Desa"
+author: "Tim Pengembang SIPINBAR"
+date: "2026-07-16"
+theme: "default"
+colortheme: "beaver"
+---
+
+<!-- Slide 1: Cover -->
+# User Flow Documentation
+## SIPINBAR - Sistem Informasi Peminjaman Barang Desa
+
+**Pemrograman Berorientasi Objek - Semester 4**
+
+---
+
+<!-- Slide 2: Agenda -->
+## Agenda
+
+1. Executive Summary
+2. System Overview
+3. User Roles & Permissions
+4. Guest User Flows
+5. Warga User Flows
+6. Admin User Flows
+7. State Machine Diagrams
+8. Technical Highlights
+9. Demo & Q&A
+
+---
+
+<!-- Slide 3: Executive Summary -->
+## Executive Summary
+
+**Apa itu SIPINBAR?**
+
+- Sistem manajemen inventaris desa yang digitalisasi proses manual peminjaman barang
+- Mengelola peminjaman: proyektor, kursi, tenda, sound system, peralatan masak, dll.
+
+**Masalah yang Diselesaikan:**
+
+| Masalah | Solusi |
+|---------|--------|
+| Pencatatan manual berbasis buku | Digitalisasi pencatatan |
+| Double-booking | Validasi ketersediaan real-time |
+| Sulit tracking pengembalian terlambat | Perhitungan denda otomatis |
+| Tidak ada riwayat historis | Laporan statistik lengkap |
+
+---
+
+<!-- Slide 4: System Overview -->
+## System Overview
+
+**Architecture Pattern**
+
+```
+┌─────────────────────────────────────────┐
+│         Model-Service-Controller         │
+├─────────────────────────────────────────┤
+│  • Python 3.12                          │
+│  • Flask 3.0                            │
+│  • SQLite 3                             │
+│  • Flask-SQLAlchemy 3.1                 │
+└─────────────────────────────────────────┘
+```
+
+**Core Modules**
+
+- Authentication & Authorization
+- Inventory Management
+- Borrowing System
+- Citizen Management
+- Notification System
+- Reporting
+
+---
+
+<!-- Slide 5: User Roles -->
+## User Roles & Permissions
+
+**Tiga User Roles**
+
+```
+┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
+│      GUEST       │    │      WARGA       │    │      ADMIN       │
+│  (Belum Login)   │    │  (Warga Desa)    │    │  (Petugas Desa)  │
+├──────────────────┤    ├──────────────────┤    ├──────────────────┤
+│ • View Login     │    │ • Login with NIK │    │ • Full Access   │
+│ • Register       │    │ • Browse Catalog │    │ • CRUD Inventory │
+│ • Attempt Login  │    │ • Submit Request │    │ • Approve/Reject │
+└──────────────────┘    │ • View History   │    │ • Manage Citizens│
+                        │ • View Notifs    │    │ • Generate Reports│
+                        └──────────────────┘    └──────────────────┘
+```
+
+---
+
+<!-- Slide 6: Guest Flow 1 - Registration -->
+## Guest Flow 1: Self-Service Registration
+
+**Flow Diagram**
+
+```
+Guest → Visit Landing → Click "Daftar" → Fill Form →
+      Submit → Registration Success → Status: "menunggu" →
+      Wait Admin Verification → (if approved) → Ready to Borrow
+```
+
+**Form Fields**
+
+- NIK (16 digit, required, unique)
+- Nama lengkap (required)
+- Password + Konfirmasi (min 6 karakter)
+- Alamat (required)
+- Telepon (required, numeric)
+- RT/RW (required)
+
+**Output:** Akun created dengan status `menunggu`
+
+---
+
+<!-- Slide 7: Guest Flow 2 - Login -->
+## Guest Flow 2: Login
+
+**Two Login Types**
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    LOGIN PAGE                             │
+├─────────────────────────────────────────────────────────┤
+│                                                          │
+│  [ ] Login sebagai Warga    [ ] Login sebagai Admin     │
+│                                                          │
+│  ┌─────────────────────┐      ┌─────────────────────┐   │
+│  │ NIK: [16 digit]     │      │ Username: [______]  │   │
+│  │ Password: [******]  │      │ Password: [******]  │   │
+│  └─────────────────────┘      └─────────────────────┘   │
+│                                                          │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Validation**
+
+- Verify password hash (PBKDF2-SHA256)
+- Check status == `'aktif'`
+- Check `verified_at IS NOT NULL` (untuk warga)
+
+**Output:** Session created, redirect to dashboard
+
+---
+
+<!-- Slide 8: Warga Flow 1 - Submit Peminjaman -->
+## Warga Flow 1: Submit Peminjaman Barang
+
+**Flow Diagram**
+
+```
+Warga → Dashboard → Click "Ajukan Peminjaman" → Fill Form →
+      Select Barang(s) + Jumlah + Tanggal → Submit →
+      Validate Availability → Create Peminjaman → Status: "diajukan"
+```
+
+**Business Rules Validated**
+
+- **BR-01:** Only active citizens can borrow
+- **BR-02:** Return date > Borrow date
+- **BR-03:** Anti double-booking (overlap detection)
+- **BR-04:** Stock validation
+- **BR-05:** No duplicate items in single request
+
+**Output:** Peminjaman created dengan unique kode (PIN-XXXXXX)
+
+---
+
+<!-- Slide 9: Peminjaman State Machine -->
+## State Machine: Peminjaman
+
+**Status Transitions**
+
+```
+     ┌──────────┐
+     │   NEW    │ (virtual)
+     └────┬─────┘
+          │ POST /ajukan
+          ↓
+     ┌──────────┐     POST /tolak     ┌──────────┐
+     │DIAJUKAN  │ ──────────────────>│ DITOLAK  │
+     └────┬─────┘                     └──────────┘
+          │
+          │ POST /setujui
+          ↓
+     ┌──────────┐
+     │DISETUJUI │
+     └────┬─────┘
+          │ POST /pinjam
+          ↓
+     ┌──────────┐
+     │ DIPINJAM │
+     └────┬─────┘
+          │ POST /kembalikan
+          ↓
+     ┌──────────┐
+     │KEMBALI  │
+     └──────────┘
+```
+
+---
+
+<!-- Slide 10: Warga Flow 2 & 3 -->
+## Warga Flow 2 & 3: View History & Check Availability
+
+**Flow 2: Lihat Riwayat Peminjaman**
+
+```
+Warga → Dashboard → Click "Riwayat Peminjaman" →
+      View List → Filter by Status → Click Detail →
+      View Full Detail (read-only)
+```
+
+**Security:** Hanya dapat melihat peminjaman milik sendiri
+
+---
+
+**Flow 3: Cek Ketersediaan Barang**
+
+```
+Warga/Guest → Dashboard → Click "Katalog Barang" →
+              View Catalog → Search by Name →
+              Filter by Category → Click Item →
+              Check Availability → Go to Borrowing Form
+```
+
+**Search Logic:** `WHERE nama LIKE '%keyword%' OR deskripsi LIKE '%keyword%'`
+
+---
+
+<!-- Slide 11: Warga Flow 4 - Notifications -->
+## Warga Flow 4: View Notifications
+
+**Notification Flow**
+
+```
+Warga → Dashboard → See Notification Badge →
+      Click Notifications → View List →
+      Click Notification → Mark as Read → Take Action
+```
+
+**Notification Types**
+
+| Tipe | Contoh |
+|------|--------|
+| `info` | "Peminjaman Anda disetujui" |
+| `warning` | "Pengembalian besok, jangan lupa!" |
+| `success` | "Barang berhasil dikembalikan" |
+| `error` | "Peminjaman ditolak karena stok habis" |
+
+**Automatic Notifications:**
+
+- N-1 Reminder (sent via cron job)
+- Approval/Rejection alerts
+- Return confirmation
+
+---
+
+<!-- Slide 12: Admin Flow 1 - Verify Warga -->
+## Admin Flow 1: Verify New Citizen
+
+**Flow Diagram**
+
+```
+Admin → Dashboard → Click "Kelola Warga" →
+      View List → Filter "Menunggu" → Click Detail →
+      Review Data → Decide: Verify OR Reject
+```
+
+**Decision Points**
+
+| Aksi | Output |
+|------|--------|
+| Verify | status → `'aktif'`, `verified_at = NOW()` |
+| Reject | status → `'ditolak'`, `alasan_penolakan` set |
+| Tunda | Status tetap `'menunggu'` |
+
+**Post-Verification:**
+
+- Warga menerima notifikasi
+- Warga dapat login dengan NIK + password
+- Warga dapat mengajukan peminjaman
+
+---
+
+<!-- Slide 13: Admin Flow 2 - Approve/Reject -->
+## Admin Flow 2: Approve/Reject Borrowing Request
+
+**Flow Diagram**
+
+```
+Admin → Dashboard → See "Permintaan Masuk" →
+      Click Detail → Review Request →
+      Decide: Approve OR Reject
+```
+
+**Review Checklist**
+
+- Kode peminjaman
+- Nama warga + Kontak
+- Tanggal pinjam-kembali
+- List barang + Stok tersedia
+- Total durasi peminjaman
+
+**Pre-Approval Validation:**
+
+- Real-time stock check
+- Double-booking detection
+- Warning jika stok berkurang sejak request
+
+---
+
+<!-- Slide 14: Admin Flow 3 - Mark as Borrowed -->
+## Admin Flow 3: Mark as Borrowed (Serahkan Barang)
+
+**Flow Diagram**
+
+```
+Admin → Search Approved Peminjaman → Click Detail →
+      Verify Identity → Click "Serahkan Barang" →
+      Update Status → Reduce Stock
+```
+
+**Physical Verification**
+
+- [ ] Verifikasi identitas warga (NIK, nama)
+- [ ] Cek fisik barang (kondisi, kelengkapan)
+- [ ] Fungsi normal (untuk elektronik)
+
+**System Actions**
+
+```
+status: 'disetujui' → 'dipinjam'
+tanggal_pinjam = TODAY()
+barang.jumlah_unit -= detail.jumlah (for each item)
+```
+
+**Output:** Stok berkurang real-time, warga menerima notifikasi
+
+---
+
+<!-- Slide 15: Admin Flow 4 - Process Return -->
+## Admin Flow 4: Process Return (Pengembalian)
+
+**Flow Diagram**
+
+```
+Admin → Search Borrowed Peminjaman → Click Detail →
+      Verify Return Items → Check Condition →
+      Input Actual Return Date → Calculate Denda →
+      Process → Restore Stock
+```
+
+**Fine Calculation Logic**
+
+```python
+hari_terlambat = MAX(0, tanggal_aktual - tanggal_harus_kembali)
+denda_per_barang = tarif_denda_per_hari * hari_terlambat * jumlah
+denda_total = SUM(denda_per_barang)
+```
+
+**Category Rates**
+
+| Kategori | Tarif Denda |
+|----------|-------------|
+| Elektronik | Rp 5.000/hari |
+| Furniture | Rp 2.000/hari |
+| Peralatan | Rp 3.000/hari |
+
+---
+
+<!-- Slide 16: Fine Calculation Example -->
+## Fine Calculation Example
+
+**Scenario:**
+
+- Warga meminjam 2 Proyektor (Elektronik)
+- Durasi: 3 hari
+- Harus kembali: 2026-07-10
+- Aktual kembali: 2026-07-13 (terlambat 3 hari)
+
+**Calculation:**
+
+```
+hari_terlambat = 2026-07-13 - 2026-07-10 = 3 hari
+tarif_elektronik = Rp 5.000/hari
+denda_per_barang = 3 hari × Rp 5.000/hari = Rp 15.000
+denda_total = 2 barang × Rp 15.000 = Rp 30.000
+```
+
+**Polymorphic Implementation:**
+
+```python
+def hitung_denda(self, hari_terlambat, jumlah):
+    return self.kategori.tarif_denda_per_hari * hari_terlambat * jumlah
+```
+
+---
+
+<!-- Slide 17: Admin Flow 5 - Manage Inventory -->
+## Admin Flow 5: Manage Inventory (Kelola Inventaris)
+
+**Three Operations**
+
+```
+┌─────────────────────────────────────────────┐
+│           INVENTORY MANAGEMENT               │
+├─────────────────────────────────────────────┤
+│                                             │
+│  1. ADD    → /barang/tambah                 │
+│  2. EDIT   → /barang/<id>/edit              │
+│  3. DELETE → /barang/<id>/hapus (soft)      │
+│                                             │
+└─────────────────────────────────────────────┘
+```
+
+**Add Item Form Fields**
+
+- Nama barang (required)
+- Kategori (dropdown, required)
+- Jumlah unit (required, min 1)
+- Kondisi (baik/perbaikan/rusak)
+- Status (tersedia/perbaikan)
+- Foto upload (optional, max 2MB)
+- Deskripsi (optional)
+
+**Soft Delete:**
+
+- Set `deleted_at = NOW()`
+- Hide from catalog
+- Keep in historical records
+
+---
+
+<!-- Slide 18: Admin Flow 6 - Block/Unblock Warga -->
+## Admin Flow 6: Block/Unblock Citizen
+
+**Block Flow**
+
+```
+Admin → Kelola Warga → Click Detail →
+      Review Pelanggaran → Click "Blokir" →
+      status: 'aktif' → 'diblokir'
+```
+
+**Blocking Use Cases:**
+
+- Warga tidak mengembalikan barang
+- Warga merusak barang
+- Pelanggaran berat
+
+**Unblock Flow**
+
+```
+Admin → Filter 'diblokir' → Click Detail →
+      Click "Aktifkan" → status: 'diblokir' → 'aktif'
+```
+
+**Unblocking Use Cases:**
+
+- Kewajiban selesai (barang kembali + denda lunas)
+- Kesalahan sistem (salah blokir)
+
+---
+
+<!-- Slide 19: Admin Flow 7 - Reports -->
+## Admin Flow 7: Generate & Export Reports
+
+**Two Report Types**
+
+```
+┌─────────────────────────────────────────┐
+│          REPORTING CENTER               │
+├─────────────────────────────────────────┤
+│                                         │
+│  1. LAPORAN PEMINJAMAN                  │
+│     • Filter by date range              │
+│     • Filter by status                  │
+│     • Export to CSV                     │
+│                                         │
+│  2. LAPORAN INVENTARIS                  │
+│     • All active items                  │
+│     • Stock statistics                  │
+│     • Category breakdown                │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+**CSV Export Format**
+
+```csv
+Kode Peminjaman,Nama Warga,NIK,Tanggal Pinjam,Status,Denda
+PIN-ABC123,Ahud Sudirman,3201...,2026-07-02,dikembalikan,10000
+```
+
+---
+
+<!-- Slide 20: Cross-Role Interactions -->
+## Cross-Role Interactions
+
+**Interaction 1: Notification Flow**
+
+```
+Warga (Submit)                    Admin (Dashboard)
+     │                                    │
+     ├─ POST /peminjaman/ajukan           │
+     │  └─ Create notifikasi ──────────────┤
+     │                                    ├─ See badge
+     │                                    ├─ Approve
+     │                                    └─ Create notifikasi ───┤
+     │                                                       │
+     ├─ Receive notifikasi                                   │
+     └─ Read: "Peminjaman Disetujui"                        │
+```
+
+**Interaction 2: Real-Time Stock Sync**
+
+```
+Warga (View Catalog)              Admin (Approve)
+     │                                    │
+     ├─ Proyektor: 5 unit                 │
+     │                                    ├─ Approve peminjaman
+     │                                    │  (2 proyektor)
+     │                                    ├─ Reduce stock: 5 → 3
+     │                                    └─ COMMIT ──────────┐
+     │                                                  │
+     ├─ Refresh katalog                               │
+     └─ See: "Proyektor (3 unit)"                    │
+```
+
+---
+
+<!-- Slide 21: State Machine - Warga -->
+## State Machine: Warga
+
+**Status Transitions**
+
+```
+     ┌──────────┐
+     │   NEW    │ (virtual)
+     └────┬─────┘
+          │ POST /register
+          ↓
+     ┌──────────┐
+     │ MENUNGGU │
+     └────┬─────┘
+          │
+     ┌────┴────┐
+     │         │
+     ↓         ↓
+┌──────────┐ ┌──────────┐
+│  AKTIF   │ │ DITOLAK  │
+└────┬─────┘ └────┬─────┘
+     │            │ (re-register allowed)
+     │ POST /blokir
+     ↓
+┌──────────┐
+│ DIBLOKIR │◄────────────┐
+└────┬─────┘             │
+     │                   │
+     │ POST /aktifkan    │
+     └───────────────────┘
+```
+
+**Valid States for Actions:**
+
+- Login: `AKTIF` only
+- Borrow: `AKTIF` only
+
+---
+
+<!-- Slide 22: State Machine - Barang -->
+## State Machine: Barang
+
+**Status Transitions**
+
+```
+     ┌──────────┐
+     │   NEW    │ (virtual)
+     └────┬─────┘
+          │ POST /tambah
+          ↓
+     ┌──────────┐
+     │  AKTIF   │
+     └────┬─────┘
+          │
+     ┌────┴─────────────┐
+     │                  │
+     │ POST /hapus      │ Change status
+     │ (soft delete)    │ (edit)
+     ↓                  │
+┌──────────┐            │
+│ DELETED  │            │
+│ (hidden) │            │
+└──────────┘            │
+                        │
+              ┌─────────┴──────────┐
+              │ STATUS UPDATE     │
+              │ (tersedia/        │
+              │  perbaikan)       │
+              └────────────────────┘
+```
+
+**Stock Calculation:**
+
+```
+unit_tersedia = jumlah_unit - (unit_dipinjam + unit_perbaikan)
+```
+
+---
+
+<!-- Slide 23: Error Handling -->
+## Error Handling & Edge Cases
+
+**Error Categories**
+
+| Category | Example Error | Recovery |
+|----------|---------------|----------|
+| Auth | E-AUTH-001: Wrong password | Retry login |
+| Registration | E-REG-001: NIK exists | Use different NIK |
+| Peminjaman | E-PIN-003: Double-booking | Choose different dates |
+| Inventory | E-INV-001: Empty name | Enter name |
+| Reporting | E-RPT-001: Invalid date range | Fix dates |
+
+**Edge Cases**
+
+- **EC-001:** Concurrent requests → SERIALIZABLE isolation
+- **EC-002:** Stock becomes 0 → Re-validate before approve
+- **EC-006:** Duplicate cron reminders → Anti-spam check
+- **EC-007:** DB connection lost → Retry with backoff
+
+---
+
+<!-- Slide 24: OOP Implementation -->
+## OOP Implementation Highlights
+
+**4 Pilar OOP dalam SIPINBAR**
+
+| Pilar | Implementation |
+|------|----------------|
+| **Encapsulation** | State transitions via controlled methods (`ajukan()`, `setujui()`, `pinjam()`, `kembalikan()`) |
+| **Inheritance** | Multiple inheritance with base classes (`BarangBase`, `WargaBase`, `AdminBase`) |
+| **Polymorphism** | Fine calculation per category (`barang.hitung_denda()`) |
+| **Abstraction** | Abstract Base Classes in `models/base.py` |
+
+**Architecture Pattern: Model-Service-Controller**
+
+```
+┌──────────┐    ┌──────────┐    ┌──────────┐
+│  MODEL   │───│ SERVICE  │───│CONTROLLER │
+│ (Barang) │    │ (Logic)  │    │  (Routes) │
+└──────────┘    └──────────┘    └──────────┘
+```
+
+---
+
+<!-- Slide 25: Technical Highlights -->
+## Technical Highlights
+
+**Security Features**
+
+- PBKDF2 password hashing (SHA256)
+- CSRF protection (SameSite=Lax)
+- SQL injection protection (ORM)
+- Session management (HTTP-only cookies)
+
+**Data Integrity**
+
+- Foreign keys enforcement
+- Unique constraints (NIK, kode)
+- Soft delete for audit trail
+- Timestamp tracking
+
+**Real-Time Features**
+
+- Stock updates on borrowing/return
+- Availability checking
+- Anti double-booking
+
+**Testing & Quality**
+
+- 244 tests, all passing
+- Complete documentation
+- Docker deployment ready
+
+---
+
+<!-- Slide 26: Summary -->
+## Summary
+
+**Key Metrics**
+
+| Metric | Value |
+|--------|-------|
+| User Flows | 13 flows (Guest: 2, Warga: 4, Admin: 7) |
+| Business Rules | 8 critical rules |
+| Notification Types | 4 types (info, warning, success, error) |
+| Test Coverage | 244 tests passing |
+| Lines of Code | ~5,000+ LOC |
+
+**Core Business Value**
+
+✓ Digitalisasi pencatatan peminjaman barang desa
+✓ Validasi ketersediaan real-time (anti double-booking)
+✓ Tracking pengembalian dan perhitungan denda otomatis
+✓ Laporan statistik untuk perencanaan anggaran
+
+---
+
+<!-- Slide 27: Demo -->
+## Live Demo
+
+**Demo Scenarios**
+
+1. **Guest Registration**
+   - Daftar sebagai warga baru
+   - Admin verifikasi warga
+
+2. **Warga Borrowing Flow**
+   - Login warga
+   - Cek katalog barang
+   - Ajukan peminjaman
+
+3. **Admin Approval Flow**
+   - Login admin
+   - Approve peminjaman
+   - Serahkan barang
+
+4. **Return & Fine Calculation**
+   - Proses pengembalian
+   - Hitung denda otomatis
+
+---
+
+<!-- Slide 28: Q&A -->
+## Q&A
+
+**Terima Kasih!**
+
+**Project SIPINBAR**
+
+Sistem Informasi Peminjaman Barang Desa
+
+Pemrograman Berorientasi Objek - Semester 4
+
+---
+
+**Questions?**
+
+---
+
+<!-- Slide 29: Appendix - Architecture -->
+## Appendix: System Architecture
+
+**Technology Stack**
+
+```
+┌────────────────────────────────────────────────────┐
+│                   PRESENTATION                       │
+│  Jinja2 Templates + Bootstrap 5 + Custom CSS          │
+├────────────────────────────────────────────────────┤
+│                   CONTROLLER                         │
+│  Flask Blueprints (auth, barang, peminjaman, warga)  │
+├────────────────────────────────────────────────────┤
+│                    SERVICE                           │
+│  Business Logic (Validation, State Transitions)      │
+├────────────────────────────────────────────────────┤
+│                     MODEL                             │
+│  SQLAlchemy ORM (Barang, Warga, Peminjaman, dll)   │
+├────────────────────────────────────────────────────┤
+│                   DATABASE                           │
+│  SQLite 3 (sipinbar.db)                              │
+└────────────────────────────────────────────────────┘
+```
+
+---
+
+<!-- Slide 30: Appendix - Database Schema -->
+## Appendix: Database Schema
+
+**Core Tables**
+
+```
+┌────────────────────────────────────────────────────┐
+│  warga                                             │
+│  • id, nik, nama_lengkap, password_hash            │
+│  • alamat, telepon, rt, rw                         │
+│  • status, verified_at, last_login_at            │
+├────────────────────────────────────────────────────┤
+│  admin                                             │
+│  • id, username, password_hash, nama_lengkap      │
+│  • is_aktif, last_login_at                        │
+├────────────────────────────────────────────────────┤
+│  barang                                            │
+│  • id, nama, kategori_id, jumlah_unit             │
+│  • kondisi, status, foto_path, deskripsi          │
+│  • created_at, deleted_at                          │
+├────────────────────────────────────────────────────┤
+│  peminjaman                                        │
+│  • id, kode, warga_id, admin_id                   │
+│  • tanggal_mulai, tanggal_selesai                 │
+│  • tanggal_pinjam, tanggal_kembali                │
+│  • status, approved_at, denda_total               │
+├────────────────────────────────────────────────────┤
+│  detail_peminjaman                                 │
+│  • peminjaman_id, barang_id, jumlah               │
+│  • kondisi_pinjam, kondisi_kembali                 │
+├────────────────────────────────────────────────────┤
+│  notifikasi                                        │
+│  • id, warga_id, peminjaman_id                    │
+│  • tipe, judul, pesan, is_dibaca                  │
+│  • created_at                                      │
+└────────────────────────────────────────────────────┘
+```
+
+---
+
+**End of Presentation**
+
+Generated: 2026-07-16
+Project: SIPINBAR - Sistem Informasi Peminjaman Barang Desa
+Course: Pemrograman Berorientasi Objek - Semester 4

@@ -152,6 +152,7 @@ def _register_blueprints(app: Flask) -> None:
         ("controllers.barang_controller", "barang_bp"),
         ("controllers.peminjaman_controller", "peminjaman_bp"),
         ("controllers.warga_controller", "admin_warga_bp"),
+        ("controllers.admin_management_controller", "admin_management_bp"),  # v2.0.0
         ("controllers.laporan_controller", "laporan_bp"),
     ]
 

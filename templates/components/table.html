@@ -21,12 +21,8 @@
           <a href="?sort={{ col.key }}&dir={{ 'desc' if sort_key == col.key and sort_dir == 'asc' else 'asc' }}" class="flex items-center space-x-1">
             <span>{{ col.label }}</span>
             {% if sort_key == col.key %}
-            <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-              {% if sort_dir == 'asc' %}
-              <path d="M5 10l5-5 5 5H5z"></path>
-              {% else %}
-              <path d="M5 10l5 5 5-5H5z"></path>
-              {% endif %}
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path>
             </svg>
             {% endif %}
           </a>
@@ -56,8 +52,8 @@
       <tr>
         <td colspan="{{ columns | length }}" class="px-6 py-12 text-center text-gray-400">
           <div class="flex flex-col items-center">
-            <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            <svg class="w-12 h-12 text-gray-300 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
             <p class="text-sm">{{ empty_message }}</p>
           </div>

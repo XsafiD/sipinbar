@@ -62,6 +62,34 @@ class Admin(db.Model):
             return False
         return check_password_hash(self.password_hash, password_plain)
 
+    def update_password(self, current_password: str, new_password: str) -> None:
+        """
+        Update password admin setelah verifikasi password saat ini.
+
+        Args:
+            current_password: Password saat ini untuk verifikasi
+            new_password: Password baru (minimal 6 karakter)
+
+        Raises:
+            ValueError: Jika password saat ini salah atau password baru tidak valid
+        """
+        if not self.check_password(current_password):
+            raise ValueError("Password saat ini salah")
+
+        if not new_password or len(new_password) < 6:
+            raise ValueError("Password baru minimal 6 karakter")
+
+        self.set_password(new_password)
+
+    # ── Account Management ────────────────────────────────────
+    def activate(self) -> None:
+        """Aktifkan akun admin (set is_aktif = True)."""
+        self.is_aktif = True
+
+    def deactivate(self) -> None:
+        """Non-aktifkan akun admin (set is_aktif = False)."""
+        self.is_aktif = False
+
     # ── Utility ───────────────────────────────────────────────
     def update_last_login(self) -> None:
         """Catat timestamp login terakhir (dipanggil saat login berhasil)."""

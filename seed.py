@@ -1,11 +1,11 @@
 """
-seed.py — Skrip untuk inisialisasi database + data demo SIPINBAR.
+seed.py — Skrip untuk inisialisasi database + data demo SIPINBAR v2.0.0.
 
 Melakukan 5 hal:
   1. ``db.create_all()`` — buat 7 tabel sesuai skema
   2. Insert admin default (username: ``admin``, password: ``admin123``)
   3. Insert 3 kategori default + 12 barang contoh (beragam kategori & kondisi)
-  4. Insert 7 warga demo (beragam status: aktif, menunggu, diblokir, ditolak)
+  4. Insert 4 warga demo (beragam status: data_only, aktif, diblokir)
   5. Insert 7 peminjaman demo (beragam status) + 5 notifikasi contoh
 
 Penggunaan:
@@ -16,10 +16,12 @@ Penggunaan:
 
 Akun demo (UBAH DI PRODUCTION!):
     Admin  : admin / admin123
-    Warga  : NIK 3201010101900001 / warga123  (Budi Santoso — aktif)
-             NIK 3201010202900002 / warga123  (Siti Aminah — aktif)
-             NIK 3201010303900003 / warga123  (Ahmad Dahlan — aktif)
-             NIK 3201010404900004 / warga123  (Dewi Lestari — aktif)
+    Warga  : budi_santoso / warga123     (Budi Santoso — aktif)
+             siti_aminah / warga123      (Siti Aminah — aktif)
+             ahmad_dahlan / warga123     (Ahmad Dahlan — diblokir)
+             (1 warga data_only tanpa username/password)
+
+Ref: SIPINBAR v2.0.0 - Username-based authentication, admin-controlled accounts
 
 Catatan: File ``.db`` TIDAK di-commit ke git (lihat .gitignore).
 Jalankan sekali setelah clone / pull pertama.
@@ -164,10 +166,11 @@ BARANG_CONTOH = [
     },
 ]
 
-# Password default untuk semua warga demo yang sudah terverifikasi
+# Password default untuk semua warga demo yang sudah diaktivasi
 PASSWORD_WARGA_DEMO = "warga123"  # UBAH DI PRODUCTION!
 
-# Format: dict dengan key, nik, nama_lengkap, alamat, telepon, rt_rw, status
+# Format: dict dengan key, nik, nama_lengkap, alamat, telepon, rt_rw, status, username (opsional)
+# Status v2.0.0: data_only, aktif, diblokir
 WARGA_DEMO = [
     {
         "key": "budi",
@@ -176,7 +179,8 @@ WARGA_DEMO = [
         "alamat": "Jl. Melati No. 1, Dusun Krajan",
         "telepon": "081234560001",
         "rt_rw": "001/001",
-        "status": "aktif",
+        "status": "data_only",  # Master data, belum bisa login
+        "username": None,
     },
     {
         "key": "siti",
@@ -185,7 +189,8 @@ WARGA_DEMO = [
         "alamat": "Jl. Mawar No. 2, Dusun Krajan",
         "telepon": "081234560002",
         "rt_rw": "001/002",
-        "status": "aktif",
+        "status": "aktif",  # Sudah diaktivasi dengan username & password
+        "username": "siti_aminah",
     },
     {
         "key": "ahmad",
@@ -194,7 +199,8 @@ WARGA_DEMO = [
         "alamat": "Jl. Anggrek No. 3, Dusun Sukamaju",
         "telepon": "081234560003",
         "rt_rw": "002/001",
-        "status": "aktif",
+        "status": "diblokir",  # Pernah aktif, kemudian diblokir
+        "username": "ahmad_dahlan",
     },
     {
         "key": "dewi",
@@ -203,35 +209,8 @@ WARGA_DEMO = [
         "alamat": "Jl. Kenanga No. 4, Dusun Sukamaju",
         "telepon": "081234560004",
         "rt_rw": "002/002",
-        "status": "aktif",
-    },
-    {
-        "key": "joko",
-        "nik": "3201010505900005",
-        "nama_lengkap": "Joko Widodo",
-        "alamat": "Jl. Dahlia No. 5, Dusun Mekarsari",
-        "telepon": "081234560005",
-        "rt_rw": "003/001",
-        "status": "menunggu",
-    },
-    {
-        "key": "rina",
-        "nik": "3201010606900006",
-        "nama_lengkap": "Rina Marlina",
-        "alamat": "Jl. Flamboyan No. 6, Dusun Mekarsari",
-        "telepon": "081234560006",
-        "rt_rw": "003/002",
-        "status": "diblokir",
-    },
-    {
-        "key": "bambang",
-        "nik": "3201010707900007",
-        "nama_lengkap": "Bambang Susilo",
-        "alamat": "Jl. Cempaka No. 7, Dusun Tegalrejo",
-        "telepon": "081234560007",
-        "rt_rw": "004/001",
-        "status": "ditolak",
-        "alasan_penolakan": "Data NIK tidak cocok dengan KTP yang dilampirkan",
+        "status": "aktif",  # Aktif untuk testing
+        "username": "dewi_lestari",
     },
 ]
 
@@ -316,12 +295,14 @@ def seed_barang(kategori_map: dict) -> dict:
 
 def seed_warga() -> dict:
     """
-    Insert warga demo dengan beragam status (aktif/menunggu/diblokir/ditolak).
+    Insert warga demo dengan beragam status (data_only/aktif/diblokir).
 
-    Status dicapai melalui controlled mutators (``verifikasi()``, ``tolak()``,
-    ``blokir()``) untuk menghormati encapsulation & state transition rules.
+    Status dicapai melalui controlled mutators (``activate()``, ``blokir()``)
+    untuk menghormati encapsulation & state transition rules.
 
     Return mapping key → Warga instance.
+
+    Ref: SIPINBAR v2.0.0 - Admin-controlled account creation
     """
     result = {}
     for data in WARGA_DEMO:
@@ -345,14 +326,21 @@ def seed_warga() -> dict:
         # Transition ke status target via controlled mutators
         status = data["status"]
         if status == "aktif":
-            warga.verifikasi(PASSWORD_WARGA_DEMO)
+            # Activate dengan username & password
+            username = data.get("username")
+            if not username:
+                raise ValueError(f"Username wajib diisi untuk status aktif (NIK: {data['nik']})")
+            warga.activate(username, PASSWORD_WARGA_DEMO)
         elif status == "diblokir":
-            # aktif dulu, lalu diblokir
-            warga.verifikasi(PASSWORD_WARGA_DEMO)
+            # Activate dulu, lalu blokir
+            username = data.get("username")
+            if not username:
+                raise ValueError(f"Username wajib diisi untuk status diblokir (NIK: {data['nik']})")
+            warga.activate(username, PASSWORD_WARGA_DEMO)
             warga.blokir()
-        elif status == "ditolak":
-            warga.tolak(data.get("alasan_penolakan", "Ditolak oleh admin"))
-        # status == "menunggu": tidak ada transisi (status default)
+        elif status == "data_only":
+            # Status default, tidak ada transisi
+            pass
 
         result[data["key"]] = warga
         print(f"  [ok] Warga '{warga.nama_lengkap}' ({status})")
@@ -814,7 +802,7 @@ def main() -> int:
         # Breakdown warga per status (jika ada)
         if Warga.query.count() > 0:
             print("\n  Warga per status:")
-            for status in ("aktif", "menunggu", "ditolak", "diblokir"):
+            for status in ("data_only", "aktif", "diblokir"):
                 count = Warga.query.filter_by(status=status).count()
                 if count > 0:
                     print(f"    {status:12s}: {count}")

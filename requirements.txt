@@ -29,6 +29,12 @@ pytest==8.2.0
 # Development server reload
 python-dotenv==1.0.1
 
+# ── Bulk Import (SIPINBAR v2.0.0) ──
+# pandas: Data processing for CSV/Excel import
+# openpyxl: Excel file format support
+pandas==2.2.2
+openpyxl==3.1.2
+
 # ── Dev / Quality Assurance (T-INT-09 & T-INT-10) ──
 # Install: pip install -r requirements.txt
 # flake8: PEP 8 linting (AC T-INT-09: 0 error, warning < 20)

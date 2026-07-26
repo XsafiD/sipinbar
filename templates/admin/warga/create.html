@@ -1,0 +1,154 @@
+{# templates/admin/warga/create.html
+
+  Halaman Create Warga untuk admin.
+  Bisa membuat warga dengan status data_only atau langsung aktif.
+
+  Ref: SIPINBAR v2.0.0 - Admin-controlled account creation
+#}
+{% extends "base.html" %}
+{% from "components/alert.html" import render_flashed %}
+
+{% block title %}Tambah Warga — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumbs #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin_warga.index') }}" class="hover:text-brand-600">Daftar Warga</a>
+  <svg class="w-4 h-4 mx-2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+  <span class="text-gray-700">Tambah Warga</span>
+</nav>
+
+<div class="md:flex md:items-center md:justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">Tambah Warga Baru</h1>
+      <p class="text-sm text-gray-500 mt-1">Buat akun warga baru (langsung aktif atau data_only)</p>
+    </div>
+    <a href="{{ url_for('admin_warga.index') }}"
+       class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+      &larr; Kembali
+    </a>
+  </div>
+
+  {# Flash messages #}
+  {{ render_flashed() }}
+
+  <div class="bg-white rounded-lg shadow">
+    <form method="post" action="{{ url_for('admin_warga.create') }}" class="p-6 space-y-6">
+      {{ form.csrf_token }}
+
+      {# Data Identitas #}
+      <div>
+        <h3 class="text-lg font-medium text-gray-900 mb-4">Data Identitas</h3>
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {# NIK #}
+          <div>
+            {{ form.nik.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.nik(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm") }}
+            {% if form.nik.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.nik.errors[0] }}</p>
+            {% endif %}
+          </div>
+
+          {# Nama Lengkap #}
+          <div>
+            {{ form.nama_lengkap.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.nama_lengkap(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm") }}
+            {% if form.nama_lengkap.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.nama_lengkap.errors[0] }}</p>
+            {% endif %}
+          </div>
+
+          {# Telepon #}
+          <div>
+            {{ form.telepon.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.telepon(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm") }}
+            {% if form.telepon.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.telepon.errors[0] }}</p>
+            {% endif %}
+          </div>
+
+          {# RT/RW #}
+          <div>
+            {{ form.rt_rw.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.rt_rw(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm", placeholder="Contoh: 001/002") }}
+            {% if form.rt_rw.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.rt_rw.errors[0] }}</p>
+            {% endif %}
+          </div>
+
+          {# Alamat #}
+          <div class="sm:col-span-2">
+            {{ form.alamat.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.alamat(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm", rows=3) }}
+            {% if form.alamat.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.alamat.errors[0] }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      {# Akun Login #}
+      <div>
+        <div class="flex items-center mb-4">
+          <input type="checkbox" id="langsung_aktif" name="langsung_aktif"
+                 class="h-4 w-4 text-brand-600 focus:ring-brand-500 border-gray-300 rounded"
+                 onchange="toggleLoginFields()">
+          <label for="langsung_aktif" class="ml-2 block text-sm font-medium text-gray-900">
+            Langsung Aktif (berikan akses login sekarang)
+          </label>
+        </div>
+
+        {# Login fields (hidden by default) #}
+        <div id="login-fields" class="hidden grid grid-cols-1 gap-6 sm:grid-cols-2 bg-gray-50 p-4 rounded-md">
+          {# Username #}
+          <div>
+            {{ form.username.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.username(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm", placeholder="Username untuk login") }}
+            {% if form.username.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.username.errors[0] }}</p>
+            {% endif %}
+          </div>
+
+          {# Password #}
+          <div>
+            {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
+            {{ form.password(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm", placeholder="Password untuk login") }}
+            {% if form.password.errors %}
+            <p class="mt-1 text-sm text-red-600">{{ form.password.errors[0] }}</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <p class="text-sm text-gray-500 mt-2">
+          <span class="font-medium">Data Only:</span> Warga ditambahkan ke master data tapi belum bisa login.<br>
+          <span class="font-medium">Langsung Aktif:</span> Warga langsung bisa login dengan username & password.
+        </p>
+      </div>
+
+      {# Submit buttons #}
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <a href="{{ url_for('admin_warga.index') }}"
+           class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          Batal
+        </a>
+        <button type="submit"
+                class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+          Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+
+<script>
+function toggleLoginFields() {
+  const checkbox = document.getElementById('langsung_aktif');
+  const loginFields = document.getElementById('login-fields');
+
+  if (checkbox.checked) {
+    loginFields.classList.remove('hidden');
+  } else {
+    loginFields.classList.add('hidden');
+  }
+}
+</script>
+{% endblock %}

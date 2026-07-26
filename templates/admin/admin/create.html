@@ -1,0 +1,100 @@
+{# templates/admin/admin/create.html
+
+  Halaman Create Admin untuk super admin.
+  Membuat akun admin baru.
+
+  Ref: SIPINBAR v2.0.0 - Multi-admin support
+#}
+{% extends "base.html" %}
+{% from "components/alert.html" import render_flashed %}
+
+{% block title %}Tambah Admin — SIPINBAR{% endblock %}
+
+{% block content %}
+{# Breadcrumbs #}
+<nav class="flex items-center text-sm text-gray-500 mb-4" aria-label="Breadcrumb">
+  <a href="{{ url_for('admin_management.index') }}" class="hover:text-brand-600">Daftar Admin</a>
+  <svg class="w-4 h-4 mx-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+  </svg>
+  <span class="text-gray-700">Tambah Admin</span>
+</nav>
+
+<div class="md:flex md:items-center md:justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Tambah Admin Baru</h1>
+    <p class="text-sm text-gray-500 mt-1">Buat akun admin sistem baru</p>
+  </div>
+  <a href="{{ url_for('admin_management.index') }}"
+     class="mt-4 md:mt-0 inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+    &larr; Kembali
+  </a>
+</div>
+
+{# Flash messages #}
+{{ render_flashed() }}
+
+<div class="bg-white rounded-lg shadow">
+    <form method="post" action="{{ url_for('admin_management.create') }}" class="p-6 space-y-6">
+      {{ form.csrf_token }}
+
+      {# Username #}
+      <div>
+        {{ form.username.label(class="block text-sm font-medium text-gray-700") }}
+        {{ form.username(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm", placeholder="Username untuk login") }}
+        {% if form.username.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.username.errors[0] }}</p>
+        {% endif %}
+        <p class="mt-1 text-xs text-gray-500">Username hanya boleh alphanumeric dan underscore, 3-50 karakter</p>
+      </div>
+
+      {# Password #}
+      <div>
+        {{ form.password.label(class="block text-sm font-medium text-gray-700") }}
+        {{ form.password(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm", placeholder="Password untuk login") }}
+        {% if form.password.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.password.errors[0] }}</p>
+        {% endif %}
+        <p class="mt-1 text-xs text-gray-500">Password minimal 6 karakter</p>
+      </div>
+
+      {# Nama Lengkap #}
+      <div>
+        {{ form.nama_lengkap.label(class="block text-sm font-medium text-gray-700") }}
+        {{ form.nama_lengkap(class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-brand-500 focus:border-brand-500 sm:text-sm", placeholder="Nama lengkap admin") }}
+        {% if form.nama_lengkap.errors %}
+        <p class="mt-1 text-sm text-red-600">{{ form.nama_lengkap.errors[0] }}</p>
+        {% endif %}
+      </div>
+
+      {# Info: Auto-aktif #}
+      <div class="bg-green-50 border border-green-200 rounded-md p-4">
+        <div class="flex">
+          <div class="flex-shrink-0">
+            <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+          </div>
+          <div class="ml-3">
+            <h3 class="text-sm font-medium text-green-800">Informasi</h3>
+            <div class="mt-2 text-sm text-green-700">
+              <p>Admin baru akan otomatis dibuat dalam status <strong>Aktif</strong> dan dapat langsung login.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {# Submit buttons #}
+      <div class="flex justify-end space-x-3 pt-4 border-t">
+        <a href="{{ url_for('admin_management.index') }}"
+           class="px-4 py-2 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+          Batal
+        </a>
+        <button type="submit"
+                class="px-4 py-2 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-brand-600 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500">
+          Buat Admin
+        </button>
+      </div>
+    </form>
+  </div>
+{% endblock %}
