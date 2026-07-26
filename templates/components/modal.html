@@ -4,7 +4,10 @@
   dan footer. Trigger via `data-modal-target="<id>"`.
 
   Macro `render_modal_trigger(target_id, label, variant, icon_path)` — tombol
-  yang membuka modal.
+  yang membuka modal. `icon_path` adalah SVG path data inline (Heroicons
+  outline style, https://heroicons.com/). Sesuai standar ikon SIPINBAR
+  (lihat docs-sipinbar/2026-07-24_rollback-complete-svg-icons.md) — tidak
+  menggunakan CDN/Font Awesome.
 
   JS interaksi di static/js/app.js (T-FE-03):
     - data-modal-target → buka modal
@@ -43,8 +46,8 @@
 </div>
 {% endmacro %}
 
-{# Trigger button #}
-{% macro render_modal_trigger(target_id, label, variant='primary', icon=None) %}
+{# Trigger button — `icon_path` menerima SVG path data Heroicons outline #}
+{% macro render_modal_trigger(target_id, label, variant='primary', icon_path=None) %}
 {% set variants = {
   'primary': 'bg-brand-600 text-white hover:bg-brand-700',
   'danger':  'bg-red-600 text-white hover:bg-red-700',
@@ -52,19 +55,10 @@
 } %}
 <button type="button" data-modal-target="{{ target_id }}"
         class="{{ variants.get(variant, variants.primary) }} px-4 py-2 rounded-lg transition-colors font-medium text-sm inline-flex items-center">
-  {% if icon == 'fa-plus' %}
-    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-    </svg>
-  {% elif icon == 'fa-trash-can' %}
-    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6a1 1 0 001 1h-2a1 1 0 01-1 1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path>
-    </svg>
-  {% elif icon %}
-    {# Fallback for other icons - will be replaced with SVG as needed #}
-    <svg class="w-5 h-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-    </svg>
+  {% if icon_path %}
+  <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ icon_path }}"></path>
+  </svg>
   {% endif %}
   {{ label }}
 </button>
